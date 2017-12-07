@@ -15,7 +15,7 @@ source("Conversions.R")
 # Initial Input Parameters:
 #
 
-TFO     <- 200  # total final output
+TFO     <- 100  # total final output
 Res.n		<- 2		# number of extraction industries/products
 Mfg.n		<- 4		# number of intermediate industries/products
 Fin.n		<- 2 		# number of final output industries (should be perfect complements)
@@ -145,11 +145,13 @@ DF.base <- data.frame(scenario = 1) %>%
           U = lapply(seq_len(nrow(.)), function(X) U),
           IO.phys = lapply(seq_len(nrow(.)), function(X) IO.phys),
           IO.curr = lapply(seq_len(nrow(.)), function(X) IO.curr),
-          IO.phys.sumall = lapply(seq_len(nrow(.)), function(X) sumall_byname(IO.phys)), 
-          IO.curr.sumall = lapply(seq_len(nrow(.)), function(X) sumall_byname(IO.curr)))
-          
-#         TST.phys = lapply(seq_len(nrow(.)), function(X) A.mat[[1]]))   
-#         TST.curr = lapply(seq_len(nrow(.)), function(X) calc.IO.metrics(IO.curr)["TST"]))
+          IO.phys.sumall = sumall_byname(IO.phys),
+          IO.curr.sumall = sumall_byname(IO.curr))
+
+DF.base <- mutate(ENA.phys = as.vector(calc.IO.metrics(IO.phys)) )   
+#########################################################################################################
+# End of Base scenario DF
+#########################################################################################################
 
 
 
