@@ -98,5 +98,9 @@ DF <- data.frame(i1 = seq(0, 1, by = 0.1)) %>%
     # V = matrixproduct_byname(C, hatize_byname(g)) %>% transpose_byname()
   )
 
+## Testing
+YY = DF$f.mat[[1]] %*% hatize_byname(DF$ysum[[1]])  # Gives the correct answer!!
+YY
 
-View(DF)
+ZZ = matrixproduct_byname(DF$f.mat[[1]],hatize_byname(DF$ysum[[1]]))
+ZZ
