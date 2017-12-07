@@ -35,11 +35,9 @@ Ind.n   <- Res.n + Mfg.n
 curr.scale	<- 10^(-6)
 curr.scale.display <- "Millions USD"
 
-# paste0 is simpler here. --MKH
-# product.names   <- c(paste("P",seq(1:Prod.n),sep=""))
 product.names   <- c(paste0("P", seq(1:Prod.n)))
-industry.names  <- c(paste("I",seq(1:Ind.n),sep=""))
-fin.names       <- c(paste("F",seq(1:Fin.n),sep=""))
+industry.names  <- c(paste0("I",seq(1:Ind.n)))
+fin.names       <- c(paste0("F",seq(1:Fin.n)))
 
 # Make the C matrix with the help of the byname package.
 # Do so in a way that is visually correct (by using byrow = TRUE), 
@@ -59,8 +57,8 @@ f.mat <- matrix(c(0,0,
  DF <- data.frame(F1 = seq(0, 1, by = 0.1)) %>% 
   mutate(
     F2 = 1 - F1,
-    scenario.vals = F1, # This becomes the metadata column
-    scenario.parm = "f"
+    scenario.val = F1, # This becomes the metadata column
+    scenario.factor = "f"
   ) %>% 
   # Use gather to form a tidy data frame that can be converted into matrices
   # (or, in this case, vectors).
@@ -74,7 +72,7 @@ f.mat <- matrix(c(0,0,
     col.type = "Industries"
    ) %>% 
   # Set grouping to preserve metadata columns
-  group_by(scenario.parm,scenario.vals) %>% 
+  group_by(scenario.factor,scenario.val) %>% 
   # Collapse to form matrices (actually, vectors)
   collapse_to_matrices(matnames = "matrix.name", values = "value",
                        rownames = "row.name", colnames = "col.name", 
@@ -87,8 +85,8 @@ f.mat <- matrix(c(0,0,
   mutate(
     f.mat = lapply(seq_len(nrow(.)), function(X) f.mat), 
     ysum = elementproduct_byname(TFO, f),
-    Y = matrixproduct_byname(f.mat,hatize_byname(ysum))
-    # V = matrixproduct_byname(C, hatize_byname(g)) %>% transpose_byname()
+    Y = matrixproduct_byname(f.mat,hatize_byname(ysum)),
+    y = matrixproduct_byname(Y,as.vector(rep(1,Fin.n),mode="any"))
   )
 
 
