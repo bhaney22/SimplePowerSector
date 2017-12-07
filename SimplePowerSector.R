@@ -86,7 +86,9 @@ f.mat <- matrix(c(0,0,
     f.mat = lapply(seq_len(nrow(.)), function(X) f.mat), 
     ysum = elementproduct_byname(TFO, f),
     Y = matrixproduct_byname(f.mat,hatize_byname(ysum)),
-    y = matrixproduct_byname(Y,as.vector(rep(1,Fin.n),mode="any"))
+    # y = matrixproduct_byname(Y,as.vector(rep(1,Fin.n),mode="any"))
+    # rowsums_byname is easier :-)
+    y = rowsums_byname(Y)
   )
 
 
