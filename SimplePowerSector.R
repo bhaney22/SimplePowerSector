@@ -10,6 +10,7 @@ library(ggplot2)  # For awesome plotting functions
 
 rm(list=ls())
 source("Calc_IO_metrics.R")
+source("Conversions.R")
 #
 # Initial Input Parameters:
 #
@@ -22,22 +23,34 @@ Fin.n		<- 2 		# number of final output industries (should be perfect complements
 phys.units	  <-	"MW"
 Res.desc 	    <- matrix(c("Coal","NG"))
 Res.units	    <- c(rep(phys.units,2))
+Res.prices    <- c(55,3)
 Res.prices.units	<- c("MT","MMBTU")
-Res.prices.conv	<- c(0,0)
+
+Mfg.prices    <- c(rep(1,Mfg.n))    ### Placeholder. There are no interindustry trades 
+                                    ### yet. All of the products are sold to the final 
+                                    ### sector.
 
 Fin.desc	<- c("Res","Com")
 Fin.units	<- c(rep(phys.units,2))
+Fin.prices <- c(0.10,0.10)
 Fin.prices.units	<- c("kWh","kWh")
-Fin.prices.conv 	<- c(0,0)
 
 Prod.n  <- Res.n + Mfg.n
 Ind.n   <- Res.n + Mfg.n
+
+product.names   <- c(paste0("P",seq(1:Prod.n)))
+industry.names  <- c(paste0("I",seq(1:Ind.n)))
+fin.names       <- c(paste0("F",seq(1:Fin.n)))
+
 curr.scale	<- 10^(-6)
 curr.scale.display <- "Millions USD"
 
-product.names   <- c(paste0("P", seq(1:Prod.n)))
-industry.names  <- c(paste0("I",seq(1:Ind.n)))
-fin.names       <- c(paste0("F",seq(1:Fin.n)))
+Res.prices.conv <- Convert.prices(Res.prices,Res.prices.units,curr.scale) 
+Fin.prices.conv <- Convert.prices(Fin.prices,Fin.prices.units,curr.scale)
+
+Prod.prices.conv <- c(Res.prices.conv,Mfg.prices)
+
+
 
 f.split <- matrix(c(.5,.5),
                   nrow = 1, ncol = 2, byrow = TRUE) %>%   
@@ -89,22 +102,38 @@ Z <- elementquotient_byname(1,Mfg.etas)  %>%
         setcoltype("Industries")  %>%
         elementproduct_byname(.,A.mat) 
 
-D <- identize_byname(Z)
+D <- transpose_byname(identize_byname(Z))
 
-A <- matrixproduct_byname(Z,transpose_byname(D))
+A <- matrixproduct_byname(Z,D)
 
 q <- matrixproduct_byname(invert_byname(Iminus_byname(A)),y)
 
-V <- matrixproduct_byname(transpose_byname(D),hatize_byname(q))
+V <- matrixproduct_byname(D,hatize_byname(q))
 
 g <- rowsums_byname(V)
 
 U <- matrixproduct_byname(Z,hatize_byname(g))
 
-IO <- cbind(U,Y)
+IO.phys <- cbind(U,Y)
 
+prod.prices.mat <- matrix(cbind(Prod.prices.conv),nrow=Prod.n,ncol=Ind.n) %>% 
+    setcolnames_byname(industry.names)  %>% 
+    setrownames_byname(product.names) %>%
+    setcoltype("Industries") %>%
+    setrowtype("Products")
+
+fin.prices.mat <- matrix(cbind(Fin.prices.conv),nrow=Prod.n,ncol=Fin.n) %>%
+  setcolnames_byname(fin.names)  %>% 
+  setrownames_byname(product.names) %>%
+  setcoltype("Industries") %>%
+  setrowtype("Products")
+ 
+IO.curr <- elementproduct_byname(cbind(prod.prices.mat,fin.prices.mat),IO.phys) %>%
+    sort_rows_cols(.,colorder=(colnames(IO.phys))) 
+  
 DF.base <- data.frame(scenario = 1) %>%
-  mutate( f.split = lapply(seq_len(nrow(.)), function(X) f.split),
+  mutate( TFO = lapply(seq_len(nrow(.)), function(X) TFO),   ## other factors to be added later
+          f.split = lapply(seq_len(nrow(.)), function(X) f.split),
           f.product.coeffs = lapply(seq_len(nrow(.)), function(X) f.product.coeffs),
           A.mat = lapply(seq_len(nrow(.)), function(X) A.mat),
           Z = lapply(seq_len(nrow(.)), function(X) Z),
@@ -114,11 +143,16 @@ DF.base <- data.frame(scenario = 1) %>%
           V = lapply(seq_len(nrow(.)), function(X) V),
           g = lapply(seq_len(nrow(.)), function(X) g),
           U = lapply(seq_len(nrow(.)), function(X) U),
-          IO = lapply(seq_len(nrow(.)), function(X) IO) )
+          IO.phys = lapply(seq_len(nrow(.)), function(X) IO.phys),
+          IO.curr = lapply(seq_len(nrow(.)), function(X) IO.curr),
+          IO.phys.sumall = lapply(seq_len(nrow(.)), function(X) sumall_byname(IO.phys)), 
+          IO.curr.sumall = lapply(seq_len(nrow(.)), function(X) sumall_byname(IO.curr)))
+          
+#         TST.phys = lapply(seq_len(nrow(.)), function(X) A.mat[[1]]))   
+#         TST.curr = lapply(seq_len(nrow(.)), function(X) calc.IO.metrics(IO.curr)["TST"]))
 
 
-  mutate(
-          ENA = lapply(seq_len(nrow(.)), function(X) calc.IO.metrics(IO)  )  )
+
 
 DF.scenario1 <- data.frame(F1 = seq(0, 1, by = 0.1)) %>% 
   mutate(

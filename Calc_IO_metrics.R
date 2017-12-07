@@ -31,8 +31,7 @@ calc.IO.metrics <-function(IO) {
 	H <- -sum(IO*temp1)
 	alpha <- X/H
 	F	<- -exp(1)*alpha*log(alpha)
-	results.names <- c("TST", "H", "X", "Psi", "alpha", "F")
-	results <- matrix(cbind(TST,H,X,Psi,alpha,F),nrow=1) %>% 
-	  set_colnames(.,results.names)
+	results <- cbind(TST,H,X,Psi,alpha,F)
+	names(results) <- cbind("TST", "H", "X", "Psi", "alpha", "F")
 	results
 }
