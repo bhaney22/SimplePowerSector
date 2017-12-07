@@ -7,15 +7,8 @@ library(tibble)   # For the rownames_to_column function.  (Not sure why this did
 library(lazyeval) # For the interp function.  (Not sure why this didn't come in with matsindf.)
 library(matsindf) # For collapse_to_matrices and expand_to_tidy functions
 library(ggplot2)  # For awesome plotting functions
-setwd("C:/Users/brh22/Google Drive/_ Energy Economics/Input-Output/R programs")
-rm(list=ls())
 
-image.dir	<- c("C:/Users/brh22/Dropbox/Apps/ShareLaTeX/Sabbatical Technical Notes/Images/")
-data.dir	<- c("C:/Users/brh22/Dropbox/Apps/ShareLaTeX/Sabbatical Technical Notes/Images/")
-source("Housekeeping.R")
-source("Calc_IO_metrics.R")
-source("Conversions.R")
-source("FormattedResults.R")
+rm(list=ls())
 
 #
 # Initial Input Parameters:
