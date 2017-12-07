@@ -35,7 +35,9 @@ Ind.n   <- Res.n + Mfg.n
 curr.scale	<- 10^(-6)
 curr.scale.display <- "Millions USD"
 
-product.names   <- c(paste("P",seq(1:Prod.n),sep=""))
+# paste0 is simpler here. --MKH
+# product.names   <- c(paste("P",seq(1:Prod.n),sep=""))
+product.names   <- c(paste0("P", seq(1:Prod.n)))
 industry.names  <- c(paste("I",seq(1:Ind.n),sep=""))
 fin.names       <- c(paste("F",seq(1:Fin.n),sep=""))
 
