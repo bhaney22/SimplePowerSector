@@ -39,8 +39,6 @@ product.names   <- c(paste("P",seq(1:Prod.n),sep=""))
 industry.names  <- c(paste("I",seq(1:Ind.n),sep=""))
 fin.names       <- c(paste("F",seq(1:Fin.n),sep=""))
 
-rm(DF)
-
 # Make the C matrix with the help of the byname package.
 # Do so in a way that is visually correct (by using byrow = TRUE), 
 # because it is simpler to debug.
@@ -50,31 +48,31 @@ f.mat <- matrix(c(0,0,
               0.6, 0.0,
               0.4, 0.0, 
               0.0, 1.0),
-            nrow = 6, ncol = 2, byrow = TRUE) %>%   # Redundant to supply both nrow and ncol, but makes intent very clear.
-  setrownames_byname(product.names) %>% # Products in rows
-  setrowtype("Products") %>% # Set row type to ensure errors are thrown when manipulating matrices with wrong types.
-  setcolnames_byname(fin.names) %>% # Industries in columns
-  setcoltype("Industries")  # Set col type to ensure errors are thrown when manipulating matrices with wrong types.
+            nrow = 6, ncol = 2, byrow = TRUE) %>%   
+            setrownames_byname(product.names) %>% # Products in rows
+            setrowtype("Products") %>% # Set row type to ensure errors are thrown when manipulating matrices with wrong types.
+            setcolnames_byname(fin.names) %>% # Industries in columns
+            setcoltype("Industries")  # Set col type to ensure errors are thrown when manipulating matrices with wrong types.
 
-DF <- data.frame(i1 = seq(0, 1, by = 0.1)) %>% 
-  # Calculate i2 values
+ DF <- data.frame(F1 = seq(0, 1, by = 0.1)) %>% 
   mutate(
-    i2 = 1 - i1,
-    f1 = i1 # This becomes the metadata column
+    F2 = 1 - F1,
+    scenario.vals = F1, # This becomes the metadata column
+    scenario.parm = "f"
   ) %>% 
   # Use gather to form a tidy data frame that can be converted into matrices
   # (or, in this case, vectors).
-  gather(key = row.name, value = value, i1, i2) %>% 
+  gather(key = col.name, value = value, F1, F2) %>% 
   # Add other metadata columns that will be required before 
   # collapsing into matrices.
   mutate(
     matrix.name = "f",
-    col.name = "Products",
-    row.type = "Industries",
-    col.type = "Products"
-  ) %>% 
+    row.name = "Products",
+    row.type = "Products",
+    col.type = "Industries"
+   ) %>% 
   # Set grouping to preserve metadata columns
-  group_by(f1) %>% 
+  group_by(scenario.parm,scenario.vals) %>% 
   # Collapse to form matrices (actually, vectors)
   collapse_to_matrices(matnames = "matrix.name", values = "value",
                        rownames = "row.name", colnames = "col.name", 
@@ -91,9 +89,4 @@ DF <- data.frame(i1 = seq(0, 1, by = 0.1)) %>%
     # V = matrixproduct_byname(C, hatize_byname(g)) %>% transpose_byname()
   )
 
-## Testing
-YY = DF$f.mat[[1]] %*% hatize_byname(DF$ysum[[1]])  # Gives the correct answer!!
-YY
 
-ZZ = matrixproduct_byname(DF$f.mat[[1]],hatize_byname(DF$ysum[[1]]))
-ZZ
