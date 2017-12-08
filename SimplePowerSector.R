@@ -47,10 +47,7 @@ curr.scale.display <- "Millions USD"
 
 Res.prices.conv <- Convert.prices(Res.prices,Res.prices.units,curr.scale) 
 Fin.prices.conv <- Convert.prices(Fin.prices,Fin.prices.units,curr.scale)
-
 Prod.prices.conv <- c(Res.prices.conv,Mfg.prices)
-
-
 
 f.split <- matrix(c(.5,.5),
                   nrow = 1, ncol = 2, byrow = TRUE) %>%   
@@ -71,10 +68,6 @@ f.product.coeffs <- matrix(
             setrowtype("Products") %>% 
             setcolnames_byname(fin.names) %>% 
             setcoltype("Industries")  
-
-Y.colsum <- elementproduct_byname(TFO, f.split)
-Y <- matrixproduct_byname(f.product.coeffs,hatize_byname(Y.colsum))
-y <- rowsums_byname(Y)
 
 A.mat <- matrix(c(0,0,1,1,0,0,
                   0,0,0,0,1,1,
@@ -130,11 +123,48 @@ fin.prices.mat <- matrix(cbind(Fin.prices.conv),nrow=Prod.n,ncol=Fin.n) %>%
  
 IO.curr <- elementproduct_byname(cbind(prod.prices.mat,fin.prices.mat),IO.phys) %>%
     sort_rows_cols(.,colorder=(colnames(IO.phys))) 
-  
+
 DF.base <- data.frame(scenario = 1) %>%
-  mutate( TFO = lapply(seq_len(nrow(.)), function(X) TFO),   ## other factors to be added later
+  mutate( TFO = TFO,   # <- 200
+          Res.n = Res.n,  # <- 2
+          Mfg.n	= Mfg.n, #	<- 4		# number of intermediate industries/products
+          Fin.n	= Fin.n, #	<- 2 		# number of final output industries (should be perfect complements)
+          
+          phys.units = phys.units, #	  <-	"MW"
+          Res.desc = Res.desc, # 	    <- matrix(c("Coal","NG"))
+          Res.units = Res.units, #	    <- c(rep(phys.units,2))
+          Res.prices = Res.prices, #   <- c(55,3)
+          Res.prices.units = Res.prices.units, #	<- c("MT","MMBTU")
+          
+          Mfg.prices  = Mfg.prices, #  <- c(rep(1,Mfg.n))    ### Placeholder. There are no interindustry trades 
+                                                            ### yet. All of the products are sold to the final 
+                                                              ### sector.
+          
+          Fin.desc = Fin.desc, #	<- c("Res","Com")
+          Fin.units	= Fin.units, # <- c(rep(phys.units,2))
+          Fin.prices = Fin.prices, # <- c(0.10,0.10)
+          Fin.prices.units = Fin.prices.units, #	<- c("kWh","kWh")
+          
+          Prod.n = Prof.n, # <- Res.n + Mfg.n
+          Ind.n = Ind.n, #  <- Res.n + Mfg.n
+          
+          product.names   = product.names, # <- c(paste0("P",seq(1:Prod.n)))
+          industry.names  = industry.names, # <- c(paste0("I",seq(1:Ind.n)))
+          fin.names       = fin.names, #<- c(paste0("F",seq(1:Fin.n)))
+          
+          curr.scale = curr.scale, #	<- 10^(-6)
+          curr.scale.display = curr.scale.display, # <- "Millions USD"
+          Res.prices.conv = lapply(seq_len(nrow(.)), function(X) {
+            Convert.prices(Res.prices,Res.prices.units,curr.scale) }),
+          Fin.prices.conv = lapply(seq_len(nrow(.)), function(X) {
+            Convert.prices(Fin.prices,Fin.prices.units,curr.scale) }),
+          Prod.prices.conv  = lapply(seq_len(nrow(.)), function(X) {
+            c(Res.prices.conv,Mfg.prices)}),
           f.split = lapply(seq_len(nrow(.)), function(X) f.split),
           f.product.coeffs = lapply(seq_len(nrow(.)), function(X) f.product.coeffs),
+          Y.colsum = elementproduct_byname(TFO, f.split),
+          Y = matrixproduct_byname(f.product.coeffs,hatize_byname(Y.colsum)),
+          y = rowsums_byname(Y),
           A.mat = lapply(seq_len(nrow(.)), function(X) A.mat),
           Z = lapply(seq_len(nrow(.)), function(X) Z),
           D = lapply(seq_len(nrow(.)), function(X) D),
@@ -143,12 +173,14 @@ DF.base <- data.frame(scenario = 1) %>%
           V = lapply(seq_len(nrow(.)), function(X) V),
           g = lapply(seq_len(nrow(.)), function(X) g),
           U = lapply(seq_len(nrow(.)), function(X) U),
-          IO.phys = lapply(seq_len(nrow(.)), function(X) IO.phys),
-          IO.curr = lapply(seq_len(nrow(.)), function(X) IO.curr),
-          IO.phys.sumall = sumall_byname(IO.phys),
-          IO.curr.sumall = sumall_byname(IO.curr))
+          IO.phys1 = lapply(seq_len(nrow(.)), function(X) IO.phys),  #use 1 in name of Df var
+          IO.curr1 = lapply(seq_len(nrow(.)), function(X) IO.curr), #during testing to make
+          IO.phys.sumall = sumall_byname(IO.phys1),                 #sure functions are using
+          IO.curr.sumall = sumall_byname(IO.curr1))                 #DF mats and not global mats
 
-DF.base <- mutate(ENA.phys = as.vector(calc.IO.metrics(IO.phys)) )   
+DF.base <- mutate(DF.base,ENA.phys = lapply(seq_len(nrow(DF.base)),function(X) TST(IO.phys1)))
+        
+
 #########################################################################################################
 # End of Base scenario DF
 #########################################################################################################
@@ -156,40 +188,28 @@ DF.base <- mutate(ENA.phys = as.vector(calc.IO.metrics(IO.phys)) )
 
 
 
-DF.scenario1 <- data.frame(F1 = seq(0, 1, by = 0.1)) %>% 
+DF.scenario1 <- data.frame(val = seq(1, 100, by = 10)) %>% 
   mutate(
-    F2 = 1 - F1,
-    scenario.val = F1, # This becomes the metadata column
-    scenario.factor = "f"
+    TFO = val,
+    scenario.val = val, # This becomes the metadata column
+    scenario.factor = "TFO"
   ) %>% 
-  # Use gather to form a tidy data frame that can be converted into matrices
-  # (or, in this case, vectors).
-  gather(key = col.name, value = value, F1, F2) %>% 
-  # Add other metadata columns that will be required before 
-  # collapsing into matrices.
   mutate(
-    matrix.name = "f",
-    row.name = "Products",
-    row.type = "Products",
-    col.type = "Industries"
-   ) %>% 
-  # Set grouping to preserve metadata columns
-  group_by(scenario.factor,scenario.val) %>% 
-  # Collapse to form matrices (actually, vectors)
-  collapse_to_matrices(matnames = "matrix.name", values = "value",
-                       rownames = "row.name", colnames = "col.name", 
-                       rowtypes = "row.type", coltypes = "col.type") %>% 
-  rename(
-    f = value  # For readability.  These are f vectors.
-  ) %>% 
-  # At this point, we now have our column of f vectors.
-  # Calculate g and V accordingly.
-  mutate(
-    f.mat = lapply(seq_len(nrow(.)), function(X) f.mat), 
-    ysum = elementproduct_byname(TFO, f),
-    Y = matrixproduct_byname(f.mat,hatize_byname(ysum)),
-    y = rowsums_byname(Y)
+    f.split = lapply(seq_len(nrow(.)), function(X) f.split),
+    f.product.coeffs = lapply(seq_len(nrow(.)), function(X) f.product.coeffs),
+    A.mat = lapply(seq_len(nrow(.)), function(X) A.mat),
+    Z = lapply(seq_len(nrow(.)), function(X) Z),
+    D = lapply(seq_len(nrow(.)), function(X) D),
+    A = lapply(seq_len(nrow(.)), function(X) A),
+    q = lapply(seq_len(nrow(.)), function(X) q),
+    V = lapply(seq_len(nrow(.)), function(X) V),
+    g = lapply(seq_len(nrow(.)), function(X) g),
+    U = lapply(seq_len(nrow(.)), function(X) U),
+    IO.phys1 = lapply(seq_len(nrow(.)), function(X) IO.phys),  #use 1 in name of Df var
+    IO.curr1 = lapply(seq_len(nrow(.)), function(X) IO.curr), #during testing to make
+    IO.phys.sumall = sumall_byname(IO.phys1),                 #sure functions are using
+    IO.curr.sumall = sumall_byname(IO.curr1))  
     
-  )
+
 
 

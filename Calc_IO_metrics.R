@@ -35,3 +35,7 @@ calc.IO.metrics <-function(IO) {
 	names(results) <- cbind("TST", "H", "X", "Psi", "alpha", "F")
 	results
 }
+
+TST <- function(IO) {
+  return(calc.IO.metrics(IO)["TST"])
+}
