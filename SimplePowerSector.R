@@ -134,6 +134,9 @@ DF.base <- data.frame(scenario = 1) %>%
 #            c(Res.prices.conv,Mfg.prices)}),
           f.split = lapply(X=scenario, function(X) f.split),
           f.product.coeffs = lapply(X=scenario, function(X) f.product.coeffs),
+#
+# Begin building Eurostat matrices from input factors here:
+#
           Y.colsum = elementproduct_byname(TFO, f.split),
           Y = matrixproduct_byname(f.product.coeffs,hatize_byname(Y.colsum)),
           y = rowsums_byname(Y),
@@ -198,31 +201,20 @@ DF.base <- data.frame(scenario = 1) %>%
 # End of Base scenario DF
 #########################################################################################################
 
-
-
-
-DF.scenario1 <- data.frame(val = seq(1, 100, by = 10)) %>% 
+##
+  ## Work in progress:
+  ##
+  
+DF.scenario1 <- data.frame(val = seq(100, 1000, by = 100),DF.base)  %>% 
   mutate(
+    scenario.factor = "TFO",
     TFO = val,
-    scenario.val = val, # This becomes the metadata column
-    scenario.factor = "TFO"
-  ) %>% 
-  mutate(
-    f.split = lapply(seq_len(nrow(.)), function(X) f.split),
-    f.product.coeffs = lapply(seq_len(nrow(.)), function(X) f.product.coeffs),
-    A.mat = lapply(seq_len(nrow(.)), function(X) A.mat),
-    Z = lapply(seq_len(nrow(.)), function(X) Z),
-    D = lapply(seq_len(nrow(.)), function(X) D),
-    A = lapply(seq_len(nrow(.)), function(X) A),
-    q = lapply(seq_len(nrow(.)), function(X) q),
-    V = lapply(seq_len(nrow(.)), function(X) V),
-    g = lapply(seq_len(nrow(.)), function(X) g),
-    U = lapply(seq_len(nrow(.)), function(X) U),
-    IO.phys1 = lapply(seq_len(nrow(.)), function(X) IO.phys),  #use 1 in name of Df var
-    IO.curr1 = lapply(seq_len(nrow(.)), function(X) IO.curr), #during testing to make
-    IO.phys.sumall = sumall_byname(IO.phys1),                 #sure functions are using
-    IO.curr.sumall = sumall_byname(IO.curr1))  
-    
+    val=NULL)
 
-
+  ##
+  ## ACK!! Why doesn't Y.colsum work anymore? It worked in DF.base.
+  ##
+  DF.scenario1 <- mutate(DF.scenario1,
+                         Y.colsum = elementproduct_byname(TFO, f.split))
+   
 
