@@ -140,12 +140,9 @@ DF.scenario.factors <- data.frame(scenario = 0) %>%
 # Begin building Eurostat matrices from input factors here:
 #
 
- DF.eurostat <- data.frame(Y.colsum = 
+ DF.eurostat <- data.frame(Y.colsum =
                     elementproduct_byname(DF.scenario.factors$TFO,DF.scenario.factors$f.split))
- 
- 
- 
- 
+
  elementproduct_byname(TFO, f.split),
           Y = matrixproduct_byname(f.product.coeffs,hatize_byname(Y.colsum)),
           y = rowsums_byname(Y),
