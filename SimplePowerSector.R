@@ -13,6 +13,9 @@ source("Calc_IO_metrics.R")
 source("Conversions.R")
 #
 # Initial Input Parameters:
+# Eventually this code will go away as the initial values are built "in line" in the data frame.
+# For now however, leave as is....skip to the first DF <- data.frame....statement to begin
+# work.
 #
 
 # TFO     <- 100  # total final output
@@ -100,8 +103,16 @@ prices.mat <- cbind(
   setcoltype("Industries") %>%
   setrowtype("Products"))
 
-DF.scenario.factors <- data.frame(scenario = 0) %>%
-  mutate( TFO = 200,
+
+########################
+# Evenutally the above code will be incorporated into the DF.scenario.factors build
+# "In line". But, will leave it this way for now and focus on getting the other aspects
+# correct.
+########################
+
+
+DF.scenario.factors <- data.frame(scenario = seq(1,2)) %>%
+  mutate( TFO = c(100,200),
           Res.n = Res.n,  # <- 2
           Mfg.n	= Mfg.n, #	<- 4		# number of intermediate industries/products
           Fin.n	= Fin.n, #	<- 2 		# number of final output industries (should be perfect complements)
@@ -126,38 +137,53 @@ DF.scenario.factors <- data.frame(scenario = 0) %>%
 
           curr.scale = curr.scale, #	<- 10^(-6)
           curr.scale.display = curr.scale.display, # <- "Millions USD"
- #         Res.prices.conv = lapply(X=scenario, function(X) {
+          
+  ### The below lines are commented out because I could not get them to
+  ### work correctly "in line." For now, I convert the prices outside
+  ### the DF build like everything else.
+  #         Res.prices.conv = lapply(X=scenario, function(X) {
  #            Convert.prices(Res.prices,Res.prices.units,curr.scale) })  )#,
  #          Fin.prices.conv = lapply(X=scenario, function(X){
  #            list(Convert.prices(Fin.prices,Fin.prices.units,curr.scale)) }),
  #          Prod.prices.conv  = lapply(X=scenario, function(X) {
-#            c(Res.prices.conv,Mfg.prices)}),
+ #            c(Res.prices.conv,Mfg.prices)}),
           f.split = lapply(X=scenario, FUN = function(X) f.split),
           f.product.coeffs = lapply(X=scenario, FUN = function(X) f.product.coeffs))
 
+###
+### End of Scenarios df build
+###
 
 #
-# Begin building Eurostat matrices from input factors here:
+# Begin building Eurostat matrices using all of the rows of input factors 
+# based on the different scenarios:
 #
 
-#############
-# Matt's work area:
-#
+############################################################################################
+# MKH work area:
+
+### HERE BEGINS THE PROBLEM. When there is more than one scenario in the DF.scenario.factors
+### data.frame, the following
+### code does not compute correctly. 
+###
+### It would be helpful if you could see what
+### needs to be adjusted - either how the DF.scenario.factors are built or
+### how the DF.eurostat uses them to build out the matrices.  Or how the process
+### works in general.
+###
+### I assume that if you get it working correctly for the first variable in the 
+### DF.eurostat, the rest will fall into place. It will be easy to double check that...
+### The second DF.eurostat statement (after the commented line below) builds out everything.
+###
 DF.eurostat <- DF.scenario.factors %>% 
   mutate(
     Y.colsum = elementproduct_byname(TFO, f.split)
   )
   
-
- 
-#############################################
-# Becky's work area below here:
-
-DF.eurostat <- data.frame(Y.colsum =
-                            elementproduct_byname(DF.scenario.factors$TFO,DF.scenario.factors$f.split))
-
-
- elementproduct_byname(TFO, f.split),
+#############  The following commands build out the entire DF.eurostat  ###################
+ DF.eurostat <- DF.scenario.factors %>% 
+  mutate(
+    Y.colsum = elementproduct_byname(TFO, f.split),
           Y = matrixproduct_byname(f.product.coeffs,hatize_byname(Y.colsum)),
           y = rowsums_byname(Y),
           A.mat = lapply(X=scenario, function(X) A.mat),
@@ -168,44 +194,43 @@ DF.eurostat <- data.frame(Y.colsum =
               setcolnames_byname(industry.names) %>% 
               setcoltype("Industries")  %>%
               elementquotient_byname(A.mat,.)),
-
-
           D = transpose_byname(identize_byname(Z)),
           A = matrixproduct_byname(Z,D),
           q = matrixproduct_byname(invert_byname(Iminus_byname(A)),y),
           V = matrixproduct_byname(D,hatize_byname(q)),
           g = rowsums_byname(V),
           U = matrixproduct_byname(Z,hatize_byname(g))   )
-  DF.base <- mutate(DF.base, IO.phys = lapply(X=scenario, function(X) {
+
+DF.eurostat %>% 
+  mutate( IO.phys = lapply(X=scenario, function(X) {
                       matrix(unlist(cbind(U,Y)),
                              nrow=Prod.n,ncol=(Ind.n+Fin.n),byrow=T ) %>%
                         setcolnames_byname(c(industry.names,fin.names))  %>% 
                         setrownames_byname(product.names) %>%
                         setcoltype("Industries") %>%
-                        setrowtype("Products")}) )
-
-  DF.base <- mutate(DF.base, 
+                        setrowtype("Products")}), 
+          
                     IO.phys.sumall = sumall_byname(IO.phys),
+          
                     TST.phys = lapply(X=scenario, function(X) { ## should be same as sumall
                       unlist(calc.IO.metrics(matrix(unlist(IO.phys),
                               nrow=Prod.n,ncol=(Ind.n+Fin.n),byrow=T ))["TST"] )}),
+          
                     alpha.phys = lapply(X=scenario, function(X) {
                       unlist(calc.IO.metrics(matrix(unlist(IO.phys),
                               nrow=Prod.n,ncol=(Ind.n+Fin.n),byrow=T ))["alpha"] )}),
+          
                     F.phys = lapply(X=scenario, function(X) {
                       unlist(calc.IO.metrics(matrix(unlist(IO.phys),
-                              nrow=Prod.n,ncol=(Ind.n+Fin.n),byrow=T ))["F"] )}))  
- 
-  DF.base <- mutate(DF.base,
-                    IO.curr = lapply(X=scenario, function(X) {
-                      elementproduct_byname(prices.mat,IO.phys) }))
+                              nrow=Prod.n,ncol=(Ind.n+Fin.n),byrow=T ))["F"] )}),
+          
+        IO.curr = lapply(X=scenario, function(X) {
+                      elementproduct_byname(prices.mat,IO.phys) }),
               #      %>% sort_rows_cols(.,colorder=(c(industry.names,fin.names))) })  ) ##########  
-  
-  DF.base <- mutate(DF.base, 
                     IO.curr.sumall = sumall_byname(IO.curr),
                     TST.curr = lapply(X=scenario, function(X) { ## should be same as sumall
                       unlist(calc.IO.metrics(matrix(unlist(IO.curr),
-                                                    nrow=Prod.n,ncol=(Ind.n+Fin.n),byrow=T ))["TST"] )}),
+                              nrow=Prod.n,ncol=(Ind.n+Fin.n),byrow=T ))["TST"] )}),
                     alpha.curr = lapply(X=scenario, function(X) {
                       unlist(calc.IO.metrics(matrix(unlist(IO.curr),
                                                     nrow=Prod.n,ncol=(Ind.n+Fin.n),byrow=T ))["alpha"] )}),
@@ -213,16 +238,14 @@ DF.eurostat <- data.frame(Y.colsum =
                       unlist(calc.IO.metrics(matrix(unlist(IO.curr),
                                                     nrow=Prod.n,ncol=(Ind.n+Fin.n),byrow=T ))["F"] )})) 
 
-  #################################################################################################
-  ########  Up to this point the code works. But, 
-  ########   1) is there a way to not have to unlist and rebuilding the matrices?
-  ########   2) re-order the columns of the result of the elementproduct_byname? 
-  ###############################################################################################
-  
 #########################################################################################################
-# End of Base scenario DF
+# End of Eurostat DF
 #########################################################################################################
-
+#
+# End of MKH work area. To avoid code conflicts, I will work only below this area.
+#
+# Beginning of BRH work area:
+#
 ##
   ## Work in progress:
   ##
