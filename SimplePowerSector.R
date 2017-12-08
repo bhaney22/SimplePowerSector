@@ -87,42 +87,18 @@ Mfg.etas <- matrix(c(1,1,1/3,0.40,0.40,0.50),nrow=1,ncol=Ind.n,byrow=T) %>%
   setcolnames_byname(industry.names) %>% 
   setcoltype("Industries") 
 
-Z <- elementquotient_byname(1,Mfg.etas)  %>% 
-     matrix(rbind(rep(.,6)),nrow=Prod.n,ncol=Ind.n) %>% 
-        setrownames_byname(product.names) %>% 
-        setrowtype("Products") %>% 
-        setcolnames_byname(industry.names) %>% 
-        setcoltype("Industries")  %>%
-        elementproduct_byname(.,A.mat) 
 
-D <- transpose_byname(identize_byname(Z))
-
-A <- matrixproduct_byname(Z,D)
-
-q <- matrixproduct_byname(invert_byname(Iminus_byname(A)),y)
-
-V <- matrixproduct_byname(D,hatize_byname(q))
-
-g <- rowsums_byname(V)
-
-U <- matrixproduct_byname(Z,hatize_byname(g))
-
-IO.phys <- cbind(U,Y)
-
-prod.prices.mat <- matrix(cbind(Prod.prices.conv),nrow=Prod.n,ncol=Ind.n) %>% 
-    setcolnames_byname(industry.names)  %>% 
-    setrownames_byname(product.names) %>%
-    setcoltype("Industries") %>%
-    setrowtype("Products")
-
-fin.prices.mat <- matrix(cbind(Fin.prices.conv),nrow=Prod.n,ncol=Fin.n) %>%
+prices.mat <- cbind(
+    prod.prices.mat <- matrix(cbind(Prod.prices.conv),nrow=Prod.n,ncol=Ind.n) %>% 
+  setcolnames_byname(industry.names)  %>% 
+  setrownames_byname(product.names) %>%
+  setcoltype("Industries") %>%
+  setrowtype("Products"),
+    fin.prices.mat <- matrix(cbind(Fin.prices.conv),nrow=Prod.n,ncol=Fin.n) %>%
   setcolnames_byname(fin.names)  %>% 
   setrownames_byname(product.names) %>%
   setcoltype("Industries") %>%
-  setrowtype("Products")
- 
-IO.curr <- elementproduct_byname(cbind(prod.prices.mat,fin.prices.mat),IO.phys) %>%
-    sort_rows_cols(.,colorder=(colnames(IO.phys))) 
+  setrowtype("Products"))
 
 DF.base <- data.frame(scenario = 1) %>%
   mutate( TFO = TFO,   # <- 200
@@ -131,56 +107,93 @@ DF.base <- data.frame(scenario = 1) %>%
           Fin.n	= Fin.n, #	<- 2 		# number of final output industries (should be perfect complements)
           
           phys.units = phys.units, #	  <-	"MW"
-          Res.desc = Res.desc, # 	    <- matrix(c("Coal","NG"))
-          Res.units = Res.units, #	    <- c(rep(phys.units,2))
-          Res.prices = Res.prices, #   <- c(55,3)
-          Res.prices.units = Res.prices.units, #	<- c("MT","MMBTU")
+          Res.desc = lapply(X=scenario, function(X) {Res.desc}), # 	    <- matrix(c("Coal","NG"))
+          Res.units = lapply(X=scenario, function(X) {Res.units}), #	    <- c(rep(phys.units,2))
+          Res.prices = lapply(X=scenario, function(X) {Res.prices}), #   <- c(55,3)
+          Res.prices.units = lapply(X=scenario, function(X) {Res.prices.units}), #	<- c("MT","MMBTU")
           
-          Mfg.prices  = Mfg.prices, #  <- c(rep(1,Mfg.n))    ### Placeholder. There are no interindustry trades 
+          Mfg.prices  = lapply(X=scenario, function(X) {Mfg.prices}), #  <- c(rep(1,Mfg.n))    ### Placeholder. There are no interindustry trades 
                                                             ### yet. All of the products are sold to the final 
                                                               ### sector.
           
-          Fin.desc = Fin.desc, #	<- c("Res","Com")
-          Fin.units	= Fin.units, # <- c(rep(phys.units,2))
-          Fin.prices = Fin.prices, # <- c(0.10,0.10)
-          Fin.prices.units = Fin.prices.units, #	<- c("kWh","kWh")
-          
-          Prod.n = Prof.n, # <- Res.n + Mfg.n
-          Ind.n = Ind.n, #  <- Res.n + Mfg.n
-          
-          product.names   = product.names, # <- c(paste0("P",seq(1:Prod.n)))
-          industry.names  = industry.names, # <- c(paste0("I",seq(1:Ind.n)))
-          fin.names       = fin.names, #<- c(paste0("F",seq(1:Fin.n)))
-          
+          Fin.desc = lapply(X=scenario, function(X) {Fin.desc}), #	<- c("Res","Com")
+          Fin.units	= lapply(X=scenario, function(X) {Fin.units}), # <- c(rep(phys.units,2))
+          Fin.prices = lapply(X=scenario, function(X) {Fin.prices}), # <- c(0.10,0.10)
+          Fin.prices.units = lapply(X=scenario, function(X) {Fin.prices.units}), #	<- c("kWh","kWh")
+  
+          Prod.n = Prod.n, # <- Res.n + Mfg.n
+          Ind.n = Ind.n , #  <- Res.n + Mfg.n
+
           curr.scale = curr.scale, #	<- 10^(-6)
           curr.scale.display = curr.scale.display, # <- "Millions USD"
-          Res.prices.conv = lapply(seq_len(nrow(.)), function(X) {
-            Convert.prices(Res.prices,Res.prices.units,curr.scale) }),
-          Fin.prices.conv = lapply(seq_len(nrow(.)), function(X) {
-            Convert.prices(Fin.prices,Fin.prices.units,curr.scale) }),
-          Prod.prices.conv  = lapply(seq_len(nrow(.)), function(X) {
-            c(Res.prices.conv,Mfg.prices)}),
-          f.split = lapply(seq_len(nrow(.)), function(X) f.split),
-          f.product.coeffs = lapply(seq_len(nrow(.)), function(X) f.product.coeffs),
+ #         Res.prices.conv = lapply(X=scenario, function(X) {
+ #            Convert.prices(Res.prices,Res.prices.units,curr.scale) })  )#,
+ #          Fin.prices.conv = lapply(X=scenario, function(X){
+ #            list(Convert.prices(Fin.prices,Fin.prices.units,curr.scale)) }),
+ #          Prod.prices.conv  = lapply(X=scenario, function(X) {
+#            c(Res.prices.conv,Mfg.prices)}),
+          f.split = lapply(X=scenario, function(X) f.split),
+          f.product.coeffs = lapply(X=scenario, function(X) f.product.coeffs),
           Y.colsum = elementproduct_byname(TFO, f.split),
           Y = matrixproduct_byname(f.product.coeffs,hatize_byname(Y.colsum)),
           y = rowsums_byname(Y),
-          A.mat = lapply(seq_len(nrow(.)), function(X) A.mat),
-          Z = lapply(seq_len(nrow(.)), function(X) Z),
-          D = lapply(seq_len(nrow(.)), function(X) D),
-          A = lapply(seq_len(nrow(.)), function(X) A),
-          q = lapply(seq_len(nrow(.)), function(X) q),
-          V = lapply(seq_len(nrow(.)), function(X) V),
-          g = lapply(seq_len(nrow(.)), function(X) g),
-          U = lapply(seq_len(nrow(.)), function(X) U),
-          IO.phys1 = lapply(seq_len(nrow(.)), function(X) IO.phys),  #use 1 in name of Df var
-          IO.curr1 = lapply(seq_len(nrow(.)), function(X) IO.curr), #during testing to make
-          IO.phys.sumall = sumall_byname(IO.phys1),                 #sure functions are using
-          IO.curr.sumall = sumall_byname(IO.curr1))                 #DF mats and not global mats
+          A.mat = lapply(X=scenario, function(X) A.mat),
+          Z = lapply(X=scenario, function(X) {matrix(elementquotient_byname(1,Mfg.etas),nrow=1)  %>% 
+              matrix(rbind(rep(.,6)),nrow=Prod.n,ncol=Ind.n)  %>% 
+              setrownames_byname(product.names ) %>% 
+              setrowtype("Products") %>% 
+              setcolnames_byname(industry.names) %>% 
+              setcoltype("Industries")  %>%
+              elementproduct_byname(.,A.mat)})  ,
+          D = transpose_byname(identize_byname(Z)),
+          A = matrixproduct_byname(Z,D),
+          q = matrixproduct_byname(invert_byname(Iminus_byname(A)),y),
+          V = matrixproduct_byname(D,hatize_byname(q)),
+          g = rowsums_byname(V),
+          U = matrixproduct_byname(Z,hatize_byname(g))   )
+  DF.base <- mutate(DF.base,  
+                    IO.phys = lapply(X=scenario, function(X) {
+                      matrix(unlist(cbind(U,Y)),
+                             nrow=Prod.n,ncol=(Ind.n+Fin.n),byrow=T ) %>%
+                        setcolnames_byname(c(industry.names,fin.names))  %>% 
+                        setrownames_byname(product.names) %>%
+                        setcoltype("Industries") %>%
+                        setrowtype("Products")}) ) 
+  DF.base <- mutate(DF.base, 
+                    IO.phys.sumall = sumall_byname(IO.phys),
+                    TST.phys = lapply(X=scenario, function(X) { ## should be same as sumall
+                      unlist(calc.IO.metrics(matrix(unlist(IO.phys),
+                              nrow=Prod.n,ncol=(Ind.n+Fin.n),byrow=T ))["TST"] )}),
+                    alpha.phys = lapply(X=scenario, function(X) {
+                      unlist(calc.IO.metrics(matrix(unlist(IO.phys),
+                              nrow=Prod.n,ncol=(Ind.n+Fin.n),byrow=T ))["alpha"] )}),
+                    F.phys = lapply(X=scenario, function(X) {
+                      unlist(calc.IO.metrics(matrix(unlist(IO.phys),
+                              nrow=Prod.n,ncol=(Ind.n+Fin.n),byrow=T ))["F"] )}))  
+ 
+  DF.base <- mutate(DF.base,
+                    IO.curr = lapply(X=scenario, function(X) {
+                      elementproduct_byname(prices.mat,IO.phys) }))
+              #      %>% sort_rows_cols(.,colorder=(c(industry.names,fin.names))) })  ) ##########  
+  
+  DF.base <- mutate(DF.base, 
+                    IO.curr.sumall = sumall_byname(IO.curr),
+                    TST.curr = lapply(X=scenario, function(X) { ## should be same as sumall
+                      unlist(calc.IO.metrics(matrix(unlist(IO.curr),
+                                                    nrow=Prod.n,ncol=(Ind.n+Fin.n),byrow=T ))["TST"] )}),
+                    alpha.curr = lapply(X=scenario, function(X) {
+                      unlist(calc.IO.metrics(matrix(unlist(IO.curr),
+                                                    nrow=Prod.n,ncol=(Ind.n+Fin.n),byrow=T ))["alpha"] )}),
+                    F.curr = lapply(X=scenario, function(X) {
+                      unlist(calc.IO.metrics(matrix(unlist(IO.curr),
+                                                    nrow=Prod.n,ncol=(Ind.n+Fin.n),byrow=T ))["F"] )})) 
 
-DF.base <- mutate(DF.base,ENA.phys = lapply(seq_len(nrow(DF.base)),function(X) TST(IO.phys1)))
-        
-
+  #################################################################################################
+  ########  Up to this point the code works. But, 
+  ########   1) is there a way to not have to unlist and rebuilding the matrices?
+  ########   2) re-order the columns of the result of the elementproduct_byname? 
+  ###############################################################################################
+  
 #########################################################################################################
 # End of Base scenario DF
 #########################################################################################################

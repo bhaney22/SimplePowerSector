@@ -40,5 +40,5 @@ price.conversion	<-c(	"MT"	  = (MT.per.kg * kg.per.MJ *
 					MJ.per.MWs * sec.per.year),
 				"kWh"	  = (kWh.per.Joule * Joule.per.MJ *
 					MJ.per.MWs * sec.per.year)   )
-	result	<- prices*price.conversion[units]*scale
+	result	<- c(prices*price.conversion[units]*scale)
 }
