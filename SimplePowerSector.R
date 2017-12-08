@@ -100,8 +100,8 @@ prices.mat <- cbind(
   setcoltype("Industries") %>%
   setrowtype("Products"))
 
-DF.base <- data.frame(scenario = 1) %>%
-  mutate( TFO = TFO,   # <- 200
+DF.scenario.factors <- data.frame(scenario = 0) %>%
+  mutate( TFO = 200,
           Res.n = Res.n,  # <- 2
           Mfg.n	= Mfg.n, #	<- 4		# number of intermediate industries/products
           Fin.n	= Fin.n, #	<- 2 		# number of final output industries (should be perfect complements)
@@ -132,36 +132,46 @@ DF.base <- data.frame(scenario = 1) %>%
  #            list(Convert.prices(Fin.prices,Fin.prices.units,curr.scale)) }),
  #          Prod.prices.conv  = lapply(X=scenario, function(X) {
 #            c(Res.prices.conv,Mfg.prices)}),
-          f.split = lapply(X=scenario, function(X) f.split),
-          f.product.coeffs = lapply(X=scenario, function(X) f.product.coeffs),
+          f.split = lapply(X=scenario, FUN = function(X) f.split),
+          f.product.coeffs = lapply(X=scenario, FUN = function(X) f.product.coeffs))
+
+
 #
 # Begin building Eurostat matrices from input factors here:
 #
-          Y.colsum = elementproduct_byname(TFO, f.split),
+
+ DF.eurostat <- data.frame(Y.colsum = DF.scenarios$TFO)
+ 
+ 
+ 
+ 
+ elementproduct_byname(TFO, f.split),
           Y = matrixproduct_byname(f.product.coeffs,hatize_byname(Y.colsum)),
           y = rowsums_byname(Y),
           A.mat = lapply(X=scenario, function(X) A.mat),
-          Z = lapply(X=scenario, function(X) {matrix(elementquotient_byname(1,Mfg.etas),nrow=1)  %>% 
-              matrix(rbind(rep(.,6)),nrow=Prod.n,ncol=Ind.n)  %>% 
+          Z = lapply(X=scenario, FUN = function(X) Mfg.etas  %>% 
+              matrix(rbind(rep(.,Prod.n)),nrow=Prod.n,ncol=Ind.n)  %>% 
               setrownames_byname(product.names ) %>% 
               setrowtype("Products") %>% 
               setcolnames_byname(industry.names) %>% 
               setcoltype("Industries")  %>%
-              elementproduct_byname(.,A.mat)})  ,
+              elementquotient_byname(A.mat,.)),
+
+
           D = transpose_byname(identize_byname(Z)),
           A = matrixproduct_byname(Z,D),
           q = matrixproduct_byname(invert_byname(Iminus_byname(A)),y),
           V = matrixproduct_byname(D,hatize_byname(q)),
           g = rowsums_byname(V),
           U = matrixproduct_byname(Z,hatize_byname(g))   )
-  DF.base <- mutate(DF.base,  
-                    IO.phys = lapply(X=scenario, function(X) {
+  DF.base <- mutate(DF.base, IO.phys = lapply(X=scenario, function(X) {
                       matrix(unlist(cbind(U,Y)),
                              nrow=Prod.n,ncol=(Ind.n+Fin.n),byrow=T ) %>%
                         setcolnames_byname(c(industry.names,fin.names))  %>% 
                         setrownames_byname(product.names) %>%
                         setcoltype("Industries") %>%
-                        setrowtype("Products")}) ) 
+                        setrowtype("Products")}) )
+
   DF.base <- mutate(DF.base, 
                     IO.phys.sumall = sumall_byname(IO.phys),
                     TST.phys = lapply(X=scenario, function(X) { ## should be same as sumall
@@ -205,16 +215,80 @@ DF.base <- data.frame(scenario = 1) %>%
   ## Work in progress:
   ##
   
-DF.scenario1 <- data.frame(val = seq(100, 1000, by = 100),DF.base)  %>% 
+DF.scenario1 <- data.frame(val = seq(100, 1000, by = 100),DF.base$f.split) %>% View
   mutate(
     scenario.factor = "TFO",
     TFO = val,
+  
     val=NULL)
 
   ##
   ## ACK!! Why doesn't Y.colsum work anymore? It worked in DF.base.
   ##
   DF.scenario1 <- mutate(DF.scenario1,
-                         Y.colsum = elementproduct_byname(TFO, f.split))
-   
+#                         Y.colsum = elementproduct_byname(TFO, f.split)) ## Gives incorrect answer
+                         Y.colsum = TFO * f.split)    ### error: non-numerica arg to binary op
 
+  DF3 <- data.frame(i1 = seq(0, 1, by = 0.1)) %>% 
+    # Calculate i2 values
+    mutate(
+      i2 = 1 - i1,
+      f1 = i1 # This becomes the metadata column
+    ) %>% 
+    # Use gather to form a tidy data frame that can be converted into matrices
+    # (or, in this case, vectors).
+    gather(key = row.name, value = value, i1, i2) %>% DF3 <- data.frame(i1 = seq(0, 1, by = 0.1)) %>% 
+    # Calculate i2 values
+    mutate(
+      i2 = 1 - i1,
+      f1 = i1 # This becomes the metadata column
+    ) %>% 
+    # Use gather to form a tidy data frame that can be converted into matrices
+    # (or, in this case, vectors).
+    gather(key = row.name, value = value, i1, i2) %>% 
+    # Add other metadata columns that will be required before 
+    # collapsing into matrices.
+    mutate(
+      matrix.name = "f",
+      col.name = "Products",
+      row.type = "Industries",
+      col.type = "Products"
+    ) %>% 
+    # Set grouping to preserve metadata columns
+    group_by(f1) %>% 
+    # Collapse to form matrices (actually, vectors)
+    collapse_to_matrices(matnames = "matrix.name", values = "value",
+                         rownames = "row.name", colnames = "col.name", 
+                         rowtypes = "row.type", coltypes = "col.type") %>% 
+    rename(
+      f = value  # For readability.  These are f vectors.
+    ) %>% 
+    # At this point, we now have our column of f vectors.
+    # Calculate g and V accordingly.
+    mutate(
+      g = elementproduct_byname(tfo, f),
+      V = matrixproduct_byname(C, hatize_byname(g)) %>% transpose_byname()
+    )
+    # Add other metadata columns that will be required before 
+    # collapsing into matrices.
+    mutate(
+      matrix.name = "f",
+      col.name = "Products",
+      row.type = "Industries",
+      col.type = "Products"
+    ) %>% 
+    # Set grouping to preserve metadata columns
+    group_by(f1) %>% 
+    # Collapse to form matrices (actually, vectors)
+    collapse_to_matrices(matnames = "matrix.name", values = "value",
+                         rownames = "row.name", colnames = "col.name", 
+                         rowtypes = "row.type", coltypes = "col.type") %>% 
+    rename(
+      f = value  # For readability.  These are f vectors.
+    ) %>% 
+    # At this point, we now have our column of f vectors.
+    # Calculate g and V accordingly.
+    mutate(
+      g = elementproduct_byname(tfo, f),
+      V = matrixproduct_byname(C, hatize_byname(g)) %>% transpose_byname()
+    )
