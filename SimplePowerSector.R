@@ -15,7 +15,7 @@ source("Conversions.R")
 # Initial Input Parameters:
 #
 
-TFO     <- 100  # total final output
+# TFO     <- 100  # total final output
 Res.n		<- 2		# number of extraction industries/products
 Mfg.n		<- 4		# number of intermediate industries/products
 Fin.n		<- 2 		# number of final output industries (should be perfect complements)
@@ -49,12 +49,12 @@ Res.prices.conv <- Convert.prices(Res.prices,Res.prices.units,curr.scale)
 Fin.prices.conv <- Convert.prices(Fin.prices,Fin.prices.units,curr.scale)
 Prod.prices.conv <- c(Res.prices.conv,Mfg.prices)
 
-f.split <- matrix(c(.5,.5),
-                  nrow = 1, ncol = 2, byrow = TRUE) %>%   
-  setrownames_byname("Products") %>% 
-  setrowtype("Products") %>% 
-  setcolnames_byname(fin.names) %>% 
-  setcoltype("Industries") 
+# f.split <- matrix(c(.5,.5),
+#                  nrow = 1, ncol = 2, byrow = TRUE) %>%   
+#  setrownames_byname("Products") %>% 
+#  setrowtype("Products") %>% 
+#  setcolnames_byname(fin.names) %>% 
+#  setcoltype("Industries") 
 
 f.product.coeffs <- matrix(
             c(0,0,
@@ -140,7 +140,8 @@ DF.scenario.factors <- data.frame(scenario = 0) %>%
 # Begin building Eurostat matrices from input factors here:
 #
 
- DF.eurostat <- data.frame(Y.colsum = DF.scenarios$TFO)
+ DF.eurostat <- data.frame(Y.colsum = 
+                    elementproduct_byname(DF.scenario.factors$TFO,DF.scenario.factors$f.split))
  
  
  
