@@ -146,9 +146,15 @@ DF.base <- data.frame(scenario = 1) %>%
           IO.phys = lapply(seq_len(nrow(.)), function(X) IO.phys),
           IO.curr = lapply(seq_len(nrow(.)), function(X) IO.curr),
           IO.phys.sumall = sumall_byname(IO.phys),
-          IO.curr.sumall = sumall_byname(IO.curr))
+          IO.curr.sumall = sumall_byname(IO.curr)) %>% 
+  
+  # Now that calc.IO.metrics returns a named list,
+  # you can do this instead:
+  cbind(calc.IO.metrics(IO.phys))
 
-DF.base <- mutate(ENA.phys = as.vector(calc.IO.metrics(IO.phys)) )   
+# DF.base <- mutate(ENA.phys = as.vector(calc.IO.metrics(IO.phys)) )   
+
+
 #########################################################################################################
 # End of Base scenario DF
 #########################################################################################################
