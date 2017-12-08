@@ -13,6 +13,38 @@
 # Returns 1 vector: H,X,Psi,TST,alpha,F
 ###########################################################################################################################################################################################
 
+# Put your cursor somewhere in the function.
+# Then, from the Code menu, choose "Insert Roxygen Skeleton".
+# You'll get an R-style comment stub. 
+# I suggest using that for comments for functions.
+# If these functions every make their way into a package, 
+# R will create the nice help files automatically
+# during the build process.
+# See my attempt below at documenting this function below.
+# See http://r-pkgs.had.co.nz/man.html for additional details on the formatting for Roxygen comments.
+ 
+
+#' Input-Output information metrics
+#' 
+#' Calculates information metrics for an input-output matrix.
+#' All of 
+#' \enumerate{
+#'   \item \code{TST} (total system throughput)
+#'   \item \code{H} (more here),  
+#'   \item \code{X} (more here), 
+#'   \item \code{Psi} (more here), 
+#'   \item \code{alpha} (more here), and 
+#'   \item F (more here)
+#' }
+#' are returned in a list. 
+#'
+#' @param IO an input-output matrix (more here)
+#'
+#' @return a named list containing \code{TST}, \code{H}, \code{X}, \code{Psi}, \code{alpha}, and \code{F}.
+#' @export 
+#'
+#' @examples
+#' Put any examples here.
 calc.IO.metrics <-function(IO) {
 	TST=sum(IO)
 	N=nrow(IO)
@@ -31,7 +63,13 @@ calc.IO.metrics <-function(IO) {
 	H <- -sum(IO*temp1)
 	alpha <- X/H
 	F	<- -exp(1)*alpha*log(alpha)
-	results <- cbind(TST,H,X,Psi,alpha,F)
-	names(results) <- cbind("TST", "H", "X", "Psi", "alpha", "F")
-	results
+	# Probably best to not do it this way.
+	# results <- cbind(TST,H,X,Psi,alpha,F)
+	# names(results) <- cbind("TST", "H", "X", "Psi", "alpha", "F")
+	# results
+
+	# Rather, return everything as a named list.  
+	# Named lists can be cbound into a data frame, 
+	# with the list's names used as column titles. 
+	list(TST = TST, H = H, X = X, Psi = Psi, alpha = alpha, F = F)
 }
