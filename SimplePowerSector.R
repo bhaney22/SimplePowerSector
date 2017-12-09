@@ -18,15 +18,58 @@ source("Conversions.R")
 # work.
 #
 
-# TFO     <- 100  # total final output
+#
+# New code BRH 2017.12.08
+#
+# New approach - make the data column of an input factor that can be cbinded to the scalar inputs
+# See at the end of the DF.scenario.factors build, there is a cbind statement to put these in.
+#
+# This process works for Mfg.etas vector. Trying to get it to work for A.mat next.
+#
+Mfg.etas <- data.frame(I1 = 1,I2=1, I3=1/3, I4=0.40, I5=0.40,I6=0.50) %>%
+  gather(key = col.name, value = value, I1,I2,I3,I4,I5,I6) %>% 
+  mutate( matrix.name = "Mfg.etas",
+          col.type="Industries",row.name="Products",row.type="Products") %>% 
+  collapse_to_matrices(matnames = "matrix.name", values = "value",
+                       rownames = "row.name", colnames = "col.name",
+                       rowtypes = "row.type", coltypes = "col.type") %>% 
+  rename(Mfg.etas = value) 
+
+A.mat <- data.frame(matrix(c(0,0,1,1,0,0,
+                             0,0,0,0,1,1,
+                             0,0,0,0,0,0,
+                             0,0,0,0,0,0,
+                             0,0,0,0,0,0, 
+                             0,0,0,0,0,0),
+                           nrow = 6, ncol = 6, byrow = TRUE) %>%   
+                      setrownames_byname(product.names) %>% 
+                      setrowtype("Products") %>% 
+                      setcolnames_byname(industry.names) %>% 
+                      setcoltype("Industries")  )
+
+##########################################################################################################
 Res.n		<- 2		# number of extraction industries/products
 Mfg.n		<- 4		# number of intermediate industries/products
 Fin.n		<- 2 		# number of final output industries (should be perfect complements)
 
+Prod.n  <- Res.n + Mfg.n
+Ind.n   <- Res.n + Mfg.n
+
+product.names   <- c(paste0("P",seq(1:Prod.n)))
+industry.names  <- c(paste0("I",seq(1:Ind.n)))
+fin.names       <- c(paste0("F",seq(1:Fin.n)))
+
 phys.units	  <-	"MW"
 Res.desc 	    <- matrix(c("Coal","NG"))
 Res.units	    <- c(rep(phys.units,2))
-Res.prices    <- c(55,3)
+
+Res.prices    <- matrix(c(55,3),
+  nrow = 1, ncol = Res.n, byrow = TRUE) %>%
+  setrownames_byname("Products") %>%
+  setrowtype("Products") %>%
+  setcolnames_byname(product.names[1:Res.n]) %>%
+  setcoltype("Products")
+
 Res.prices.units	<- c("MT","MMBTU")
 
 Mfg.prices    <- c(rep(1,Mfg.n))    ### Placeholder. There are no interindustry trades 
@@ -38,12 +81,7 @@ Fin.units	<- c(rep(phys.units,2))
 Fin.prices <- c(0.10,0.10)
 Fin.prices.units	<- c("kWh","kWh")
 
-Prod.n  <- Res.n + Mfg.n
-Ind.n   <- Res.n + Mfg.n
 
-product.names   <- c(paste0("P",seq(1:Prod.n)))
-industry.names  <- c(paste0("I",seq(1:Ind.n)))
-fin.names       <- c(paste0("F",seq(1:Fin.n)))
 
 curr.scale	<- 10^(-6)
 curr.scale.display <- "Millions USD"
@@ -72,23 +110,7 @@ f.product.coeffs <- matrix(
             setcolnames_byname(fin.names) %>% 
             setcoltype("Industries")  
 
-A.mat <- matrix(c(0,0,1,1,0,0,
-                  0,0,0,0,1,1,
-                  0,0,0,0,0,0,
-                  0,0,0,0,0,0,
-                  0,0,0,0,0,0, 
-                  0,0,0,0,0,0),
-                nrow = 6, ncol = 6, byrow = TRUE) %>%   
-  setrownames_byname(product.names) %>% 
-  setrowtype("Products") %>% 
-  setcolnames_byname(industry.names) %>% 
-  setcoltype("Industries")  
 
-Mfg.etas <- matrix(c(1,1,1/3,0.40,0.40,0.50),nrow=1,ncol=Ind.n,byrow=T) %>%
-  setrownames_byname("Products") %>% 
-  setrowtype("Products") %>% 
-  setcolnames_byname(industry.names) %>% 
-  setcoltype("Industries") 
 
 
 prices.mat <- cbind(
@@ -111,8 +133,8 @@ prices.mat <- cbind(
 ########################
 
 
-DF.scenario.factors <- data.frame(scenario = seq(0,1)) %>%
-  mutate( TFO = c(100,200),
+DF.scenario.factors <- data.frame(scenario = 0) %>%
+  mutate( TFO = 200,
           Res.n = Res.n,  # <- 2
           Mfg.n	= Mfg.n, #	<- 4		# number of intermediate industries/products
           Fin.n	= Fin.n, #	<- 2 		# number of final output industries (should be perfect complements)
@@ -137,18 +159,13 @@ DF.scenario.factors <- data.frame(scenario = seq(0,1)) %>%
 
           curr.scale = curr.scale, #	<- 10^(-6)
           curr.scale.display = curr.scale.display, # <- "Millions USD"
-          
-  ### The below lines are commented out because I could not get them to
-  ### work correctly "in line." For now, I convert the prices outside
-  ### the DF build like everything else.
-  #         Res.prices.conv = lapply(X=scenario, function(X) {
- #            Convert.prices(Res.prices,Res.prices.units,curr.scale) })  )#,
- #          Fin.prices.conv = lapply(X=scenario, function(X){
- #            list(Convert.prices(Fin.prices,Fin.prices.units,curr.scale)) }),
- #          Prod.prices.conv  = lapply(X=scenario, function(X) {
- #            c(Res.prices.conv,Mfg.prices)}),
           f.split = lapply(X=scenario, FUN = function(X) f.split),
-          f.product.coeffs = lapply(X=scenario, FUN = function(X) f.product.coeffs))
+          f.product.coeffs = lapply(X=scenario, FUN = function(X) f.product.coeffs))%>%
+##
+## cbind all of the initial matrices here
+##
+          cbind(.,Mfg.etas,A.mat) %>%
+          select(order(colnames(.)))
 
 ###
 ### End of Scenarios df build
@@ -267,11 +284,10 @@ DF.scenario.factors <- data.frame(scenario = seq(0,1)) %>%
 #     V = matrixproduct_byname(C, hatize_byname(g)) %>% transpose_byname()
 #   )
   ##
-  ## Work in progress:
+  ## Create scenarios:
   ##
     DF.s1 <- data.frame(F1 = seq(0, 1, by = 0.1)) %>%
       mutate(
-        scenario=1,
         F2 = 1 - F1,
         sweep.val = F1 # This becomes the metadata column
       ) %>% 
@@ -282,7 +298,62 @@ DF.scenario.factors <- data.frame(scenario = seq(0,1)) %>%
       collapse_to_matrices(matnames = "matrix.name", values = "value",
                            rownames = "row.name", colnames = "col.name",
                            rowtypes = "row.type", coltypes = "col.type") %>% 
-      rename(f.split = value) %>%
-      cbind(.,mutate(DF.scenario.factors,scenario=NULL,f.split=NULL)) %>% 
-      mutate(    Y.colsum = elementproduct_byname(TFO, f.split))
-View(DF.s1)
+      rename(f.split = value) %>% 
+      mutate(scenario=1,sweep.factor = "f.split") %>%
+      cbind(.,mutate(DF.scenario.factors,scenario=NULL,f.split=NULL)) %>%
+      select(order(colnames(.)))
+#
+# Keep NG price at $3, but vary the price of coal
+#
+DF.s2 <- data.frame(P1 = seq(55,555,by=100)) %>%
+  mutate(
+    P2 = 3,
+    sweep.val = 
+      P1 # This becomes the metadata column
+  ) %>% 
+  gather(key = col.name, value = value, P1, P2) %>% 
+  mutate( matrix.name = "Res.prices",
+          col.type="Products",row.name="Products",row.type="Products") %>% 
+  group_by(sweep.val) %>%  
+  collapse_to_matrices(matnames = "matrix.name", values = "value",
+                       rownames = "row.name", colnames = "col.name",
+                       rowtypes = "row.type", coltypes = "col.type") %>% 
+  rename(Res.prices = value) %>% 
+  mutate(scenario=2,sweep.factor = "Res.prices") %>%
+  cbind(.,mutate(DF.scenario.factors,scenario=NULL,Res.prices=NULL)) %>%
+  select(order(colnames(.)))
+
+#
+# Double all Mfg etas
+#
+  DF.s3 <- data.frame(Mfg.etas) %>%
+    mutate(
+      sweep.val = 2,
+      Mfg.etas = elementproduct_byname(sweep.val,Mfg.etas), 
+      scenario=3,sweep.factor = "Mfg.etas") %>%
+    cbind(.,mutate(DF.scenario.factors,scenario=NULL,Mfg.etas=NULL)) %>%
+    select(order(colnames(.)))
+
+DF.scenarios <- data.frame(rbind(DF.s1,DF.s2,DF.s3)) 
+#
+# Once all scenarios are built, create all of the eurostat matrices.
+#
+DF.eurostat <- data.frame(DF.scenarios) %>% 
+  mutate(    Y.colsum = elementproduct_byname(TFO, f.split),
+             Y = matrixproduct_byname(f.product.coeffs,hatize_byname(Y.colsum)),
+             y = rowsums_byname(Y))
+
+
+
+
+###
+### Why doesn't this one work???
+###
+# DF.s2 <- data.frame( TFO = seq(10, 100, by = 10)) %>%
+#   mutate(
+#     scenario=2,
+#     sweep.factor = "TFO",
+#     sweep.val = TFO # This becomes the metadata column
+#   ) %>%
+#   cbind(.,mutate(DF.scenario.factors,scenario=NULL,TFO=NULL)) %>%
+#   select(order(colnames(.)))
