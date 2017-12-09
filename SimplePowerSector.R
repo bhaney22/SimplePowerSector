@@ -86,6 +86,27 @@ A.mat <- matrix(c(0,0,1,1,0,0,
   setcolnames_byname(industry.names) %>% 
   setcoltype("Industries")  
 
+# I'm not sure that you need to use collapse to make A.mat. 
+# The code above is just fine.
+# But if you want to use collapse, you might try the code below.
+# Note that you DON'T need to create all rows and columns, 
+# only rows and columns for which non-zero entries are present.
+# The _byname functions will add rows or columns of zeroes as needed
+# When A.mat is an operand in one of the functions.
+A.mat.2 <- data.frame(value = c(1,1,1,1)) %>% 
+  mutate(
+    rownames = c("P1", "P1", "P2", "P2"),
+    colnames = c("I3", "I4", "I5", "I6"),
+    mat.name = rep.int("A.mat", 4),
+    rowtypes = rep.int("Product", 4),
+    coltypes = rep.int("Industries", 4)
+  ) %>% 
+  collapse_to_matrices(matnames = "mat.name", values = "value",
+                       rownames = "rownames", colnames = "colnames", 
+                       rowtypes = "rowtypes", coltypes = "coltypes") %>% 
+  rename(A.mat = value)
+  
+
 #
 # BRH TODO: Byname-ize the following matrix after shown how to do it.
 #
