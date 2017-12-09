@@ -175,8 +175,13 @@ DF.scenario.factors <- data.frame(scenario = 0) %>%
 # Three working prototype scenarios are built -- brh
 #
 ###############################################################################
-
-    DF.s1 <- data.frame(F1 = seq(0, 1, by = 0.1)) %>%
+#
+# Change percent of electricity used by final output sectors
+# (although BRH thinks they should be called industries because this is a model built
+#  at the scale of one sector - several industries within it. The final output
+#  good goes to another industry - not to the final demand sector.)
+#
+    DF.IO1 <- data.frame(F1 = seq(0, 1, by = 0.1)) %>%
       mutate(
         F2 = 1 - F1,
         sweep.val = F1 
@@ -195,11 +200,31 @@ DF.scenario.factors <- data.frame(scenario = 0) %>%
 #
 # Keep NG price at $3, but vary the price of coal
 #
-DF.s2 <- data.frame(P1 = seq(55,555,by=100)) %>%
+DF.IO2a <- data.frame(P1 = c(Convert.prices(55,"MT",curr.scale),
+                             Convert.prices(110,"MT",curr.scale),
+                             Convert.prices(220,"MT",curr.scale))) %>%
   mutate(
     P2 = 3,
-    sweep.val = 
-      P1 # This becomes the metadata column
+    sweep.val = P1 # This becomes the metadata column
+  ) %>% 
+  gather(key = col.name, value = value, P1, P2) %>% 
+  mutate( matrix.name = "Res.prices",
+          col.type="Products",row.name="Products",row.type="Products") %>% 
+  group_by(sweep.val) %>%  
+  collapse_to_matrices(matnames = "matrix.name", values = "value",
+                       rownames = "row.name", colnames = "col.name",
+                       rowtypes = "row.type", coltypes = "col.type") %>% 
+  rename(Res.prices = value) %>% 
+  mutate(scenario=2,sweep.factor = "Res.prices") %>%
+  cbind(.,mutate(DF.scenario.factors,scenario=NULL,Res.prices=NULL)) %>%
+  select(order(colnames(.)))
+
+DF.IO2b <- data.frame(P2 = c(Convert.prices(3,"MMBTU",curr.scale),
+                             Convert.prices(6,"MMBTU",curr.scale),
+                             Convert.prices(9,"MMBTU",curr.scale))) %>%
+  mutate(
+    P1 = 55,
+    sweep.val = P2 # This becomes the metadata column
   ) %>% 
   gather(key = col.name, value = value, P1, P2) %>% 
   mutate( matrix.name = "Res.prices",
@@ -216,7 +241,7 @@ DF.s2 <- data.frame(P1 = seq(55,555,by=100)) %>%
 #
 # Double all Mfg etas
 #
-  DF.s3 <- data.frame(Mfg.etas) %>%
+  DF.IO3 <- data.frame(Mfg.etas) %>%
     mutate(
       sweep.val = 2,
       Mfg.etas = elementproduct_byname(sweep.val,Mfg.etas), 
@@ -227,7 +252,7 @@ DF.s2 <- data.frame(P1 = seq(55,555,by=100)) %>%
   ###
   ### MKH TODO List #4: Why doesn't this one work???
   ###
-  # DF.s4 <- data.frame( TFO = seq(10, 100, by = 10)) %>%
+  # DF.IO4 <- data.frame( TFO = seq(10, 100, by = 10)) %>%
   #   mutate(
   #     scenario=2,
   #     sweep.factor = "TFO",
@@ -236,7 +261,9 @@ DF.s2 <- data.frame(P1 = seq(55,555,by=100)) %>%
   #   cbind(.,mutate(DF.scenario.factors,scenario=NULL,TFO=NULL)) %>%
   #   select(order(colnames(.)))
   
-DF.scenarios <- data.frame(rbind(DF.s1,DF.s2,DF.s3)) 
+DF.scenarios <- data.frame(rbind(DF.IO1,DF.IO2a,DF.IO2b,DF.IO3))
+
+DF.scenarios1 <- data.frame(rbind(ls("^DF.IO"))) 
 ###########################################################################
 # 
 # NEW SECTION
