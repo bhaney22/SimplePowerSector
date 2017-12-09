@@ -69,3 +69,12 @@ calc.IO.metrics <-function(IO) {
 	list(TST = TST, H = H, X = X, Psi = Psi, alpha = alpha, F = F)
 }
 
+calc.TST <- function(IO) {
+  return(calc.IO.metrics(IO)["TST"] %>% as.numeric) }
+  
+calc.alpha <- function(IO) {
+    return(calc.IO.metrics(IO)["alpha"] %>% as.numeric) }
+    
+calc.F <- function(IO) {
+      return(calc.IO.metrics(IO)["F"] %>% as.numeric)  }
+
