@@ -111,7 +111,7 @@ prices.mat <- cbind(
 ########################
 
 
-DF.scenario.factors <- data.frame(scenario = seq(1,2)) %>%
+DF.scenario.factors <- data.frame(scenario = seq(0,1)) %>%
   mutate( TFO = c(100,200),
           Res.n = Res.n,  # <- 2
           Mfg.n	= Mfg.n, #	<- 4		# number of intermediate industries/products
@@ -175,68 +175,68 @@ DF.scenario.factors <- data.frame(scenario = seq(1,2)) %>%
 ### DF.eurostat, the rest will fall into place. It will be easy to double check that...
 ### The second DF.eurostat statement (after the commented line below) builds out everything.
 ###
-DF.eurostat <- DF.scenario.factors %>% 
-  mutate(
-    Y.colsum = elementproduct_byname(TFO, f.split)
-  )
-  
+# DF.eurostat <- DF.scenario.factors %>% 
+#   mutate(
+#     Y.colsum = elementproduct_byname(TFO, f.split)
+#   )
+#   
 #############  The following commands build out the entire DF.eurostat  ###################
- DF.eurostat <- DF.scenario.factors %>% 
-  mutate(
-    Y.colsum = elementproduct_byname(TFO, f.split),
-          Y = matrixproduct_byname(f.product.coeffs,hatize_byname(Y.colsum)),
-          y = rowsums_byname(Y),
-          A.mat = lapply(X=scenario, function(X) A.mat),
-          Z = lapply(X=scenario, FUN = function(X) Mfg.etas  %>% 
-              matrix(rbind(rep(.,Prod.n)),nrow=Prod.n,ncol=Ind.n)  %>% 
-              setrownames_byname(product.names ) %>% 
-              setrowtype("Products") %>% 
-              setcolnames_byname(industry.names) %>% 
-              setcoltype("Industries")  %>%
-              elementquotient_byname(A.mat,.)),
-          D = transpose_byname(identize_byname(Z)),
-          A = matrixproduct_byname(Z,D),
-          q = matrixproduct_byname(invert_byname(Iminus_byname(A)),y),
-          V = matrixproduct_byname(D,hatize_byname(q)),
-          g = rowsums_byname(V),
-          U = matrixproduct_byname(Z,hatize_byname(g))   )
-
-DF.eurostat %>% 
-  mutate( IO.phys = lapply(X=scenario, function(X) {
-                      matrix(unlist(cbind(U,Y)),
-                             nrow=Prod.n,ncol=(Ind.n+Fin.n),byrow=T ) %>%
-                        setcolnames_byname(c(industry.names,fin.names))  %>% 
-                        setrownames_byname(product.names) %>%
-                        setcoltype("Industries") %>%
-                        setrowtype("Products")}), 
-          
-                    IO.phys.sumall = sumall_byname(IO.phys),
-          
-                    TST.phys = lapply(X=scenario, function(X) { ## should be same as sumall
-                      unlist(calc.IO.metrics(matrix(unlist(IO.phys),
-                              nrow=Prod.n,ncol=(Ind.n+Fin.n),byrow=T ))["TST"] )}),
-          
-                    alpha.phys = lapply(X=scenario, function(X) {
-                      unlist(calc.IO.metrics(matrix(unlist(IO.phys),
-                              nrow=Prod.n,ncol=(Ind.n+Fin.n),byrow=T ))["alpha"] )}),
-          
-                    F.phys = lapply(X=scenario, function(X) {
-                      unlist(calc.IO.metrics(matrix(unlist(IO.phys),
-                              nrow=Prod.n,ncol=(Ind.n+Fin.n),byrow=T ))["F"] )}),
-          
-        IO.curr = lapply(X=scenario, function(X) {
-                      elementproduct_byname(prices.mat,IO.phys) }),
-              #      %>% sort_rows_cols(.,colorder=(c(industry.names,fin.names))) })  ) ##########  
-                    IO.curr.sumall = sumall_byname(IO.curr),
-                    TST.curr = lapply(X=scenario, function(X) { ## should be same as sumall
-                      unlist(calc.IO.metrics(matrix(unlist(IO.curr),
-                              nrow=Prod.n,ncol=(Ind.n+Fin.n),byrow=T ))["TST"] )}),
-                    alpha.curr = lapply(X=scenario, function(X) {
-                      unlist(calc.IO.metrics(matrix(unlist(IO.curr),
-                                                    nrow=Prod.n,ncol=(Ind.n+Fin.n),byrow=T ))["alpha"] )}),
-                    F.curr = lapply(X=scenario, function(X) {
-                      unlist(calc.IO.metrics(matrix(unlist(IO.curr),
-                                                    nrow=Prod.n,ncol=(Ind.n+Fin.n),byrow=T ))["F"] )})) 
+#  DF.eurostat <- DF.scenario.factors %>% 
+#   mutate(
+#     Y.colsum = elementproduct_byname(TFO, f.split),
+#           Y = matrixproduct_byname(f.product.coeffs,hatize_byname(Y.colsum)),
+#           y = rowsums_byname(Y),
+#           A.mat = lapply(X=scenario, function(X) A.mat),
+#           Z = lapply(X=scenario, FUN = function(X) Mfg.etas  %>% 
+#               matrix(rbind(rep(.,Prod.n)),nrow=Prod.n,ncol=Ind.n)  %>% 
+#               setrownames_byname(product.names ) %>% 
+#               setrowtype("Products") %>% 
+#               setcolnames_byname(industry.names) %>% 
+#               setcoltype("Industries")  %>%
+#               elementquotient_byname(A.mat,.)),
+#           D = transpose_byname(identize_byname(Z)),
+#           A = matrixproduct_byname(Z,D),
+#           q = matrixproduct_byname(invert_byname(Iminus_byname(A)),y),
+#           V = matrixproduct_byname(D,hatize_byname(q)),
+#           g = rowsums_byname(V),
+#           U = matrixproduct_byname(Z,hatize_byname(g))   )
+# 
+# DF.eurostat %>% 
+#   mutate( IO.phys = lapply(X=scenario, function(X) {
+#                       matrix(unlist(cbind(U,Y)),
+#                              nrow=Prod.n,ncol=(Ind.n+Fin.n),byrow=T ) %>%
+#                         setcolnames_byname(c(industry.names,fin.names))  %>% 
+#                         setrownames_byname(product.names) %>%
+#                         setcoltype("Industries") %>%
+#                         setrowtype("Products")}), 
+#           
+#                     IO.phys.sumall = sumall_byname(IO.phys),
+#           
+#                     TST.phys = lapply(X=scenario, function(X) { ## should be same as sumall
+#                       unlist(calc.IO.metrics(matrix(unlist(IO.phys),
+#                               nrow=Prod.n,ncol=(Ind.n+Fin.n),byrow=T ))["TST"] )}),
+#           
+#                     alpha.phys = lapply(X=scenario, function(X) {
+#                       unlist(calc.IO.metrics(matrix(unlist(IO.phys),
+#                               nrow=Prod.n,ncol=(Ind.n+Fin.n),byrow=T ))["alpha"] )}),
+#           
+#                     F.phys = lapply(X=scenario, function(X) {
+#                       unlist(calc.IO.metrics(matrix(unlist(IO.phys),
+#                               nrow=Prod.n,ncol=(Ind.n+Fin.n),byrow=T ))["F"] )}),
+#           
+#         IO.curr = lapply(X=scenario, function(X) {
+#                       elementproduct_byname(prices.mat,IO.phys) }),
+#               #      %>% sort_rows_cols(.,colorder=(c(industry.names,fin.names))) })  ) ##########  
+#                     IO.curr.sumall = sumall_byname(IO.curr),
+#                     TST.curr = lapply(X=scenario, function(X) { ## should be same as sumall
+#                       unlist(calc.IO.metrics(matrix(unlist(IO.curr),
+#                               nrow=Prod.n,ncol=(Ind.n+Fin.n),byrow=T ))["TST"] )}),
+#                     alpha.curr = lapply(X=scenario, function(X) {
+#                       unlist(calc.IO.metrics(matrix(unlist(IO.curr),
+#                                                     nrow=Prod.n,ncol=(Ind.n+Fin.n),byrow=T ))["alpha"] )}),
+#                     F.curr = lapply(X=scenario, function(X) {
+#                       unlist(calc.IO.metrics(matrix(unlist(IO.curr),
+#                                                     nrow=Prod.n,ncol=(Ind.n+Fin.n),byrow=T ))["F"] )})) 
 
 #########################################################################################################
 # End of Eurostat DF
@@ -247,83 +247,42 @@ DF.eurostat %>%
 # Beginning of BRH work area:
 #
 ##
+## Example scenario build using gather & collapse:
+##
+# DF3 <- data.frame(i1 = seq(0, 1, by = 0.1)) %>% 
+#   mutate(
+#     i2 = 1 - i1,
+#     f1 = i1 # This becomes the metadata column
+#   ) %>% 
+#   gather(key = row.name, value = value, i1, i2) %>%
+#   mutate(
+#     matrix.name = "f",col.name="Products",row.type="Industries",col.type="Products") %>% 
+#   group_by(f1) %>% 
+#   collapse_to_matrices(matnames = "matrix.name", values = "value",
+#                        rownames = "row.name", colnames = "col.name", 
+#                        rowtypes = "row.type", coltypes = "col.type") %>% 
+#   rename(f = value) %>% 
+#   mutate(
+#     g = elementproduct_byname(tfo, f),
+#     V = matrixproduct_byname(C, hatize_byname(g)) %>% transpose_byname()
+#   )
+  ##
   ## Work in progress:
   ##
-  
-DF.scenario1 <- data.frame(val = seq(100, 1000, by = 100),DF.base$f.split) %>% View
-  mutate(
-    scenario.factor = "TFO",
-    TFO = val,
-  
-    val=NULL)
-
-  ##
-  ## ACK!! Why doesn't Y.colsum work anymore? It worked in DF.base.
-  ##
-  DF.scenario1 <- mutate(DF.scenario1,
-#                         Y.colsum = elementproduct_byname(TFO, f.split)) ## Gives incorrect answer
-                         Y.colsum = TFO * f.split)    ### error: non-numerica arg to binary op
-
-  DF3 <- data.frame(i1 = seq(0, 1, by = 0.1)) %>% 
-    # Calculate i2 values
-    mutate(
-      i2 = 1 - i1,
-      f1 = i1 # This becomes the metadata column
-    ) %>% 
-    # Use gather to form a tidy data frame that can be converted into matrices
-    # (or, in this case, vectors).
-    gather(key = row.name, value = value, i1, i2) %>% DF3 <- data.frame(i1 = seq(0, 1, by = 0.1)) %>% 
-    # Calculate i2 values
-    mutate(
-      i2 = 1 - i1,
-      f1 = i1 # This becomes the metadata column
-    ) %>% 
-    # Use gather to form a tidy data frame that can be converted into matrices
-    # (or, in this case, vectors).
-    gather(key = row.name, value = value, i1, i2) %>% 
-    # Add other metadata columns that will be required before 
-    # collapsing into matrices.
-    mutate(
-      matrix.name = "f",
-      col.name = "Products",
-      row.type = "Industries",
-      col.type = "Products"
-    ) %>% 
-    # Set grouping to preserve metadata columns
-    group_by(f1) %>% 
-    # Collapse to form matrices (actually, vectors)
-    collapse_to_matrices(matnames = "matrix.name", values = "value",
-                         rownames = "row.name", colnames = "col.name", 
-                         rowtypes = "row.type", coltypes = "col.type") %>% 
-    rename(
-      f = value  # For readability.  These are f vectors.
-    ) %>% 
-    # At this point, we now have our column of f vectors.
-    # Calculate g and V accordingly.
-    mutate(
-      g = elementproduct_byname(tfo, f),
-      V = matrixproduct_byname(C, hatize_byname(g)) %>% transpose_byname()
-    )
-    # Add other metadata columns that will be required before 
-    # collapsing into matrices.
-    mutate(
-      matrix.name = "f",
-      col.name = "Products",
-      row.type = "Industries",
-      col.type = "Products"
-    ) %>% 
-    # Set grouping to preserve metadata columns
-    group_by(f1) %>% 
-    # Collapse to form matrices (actually, vectors)
-    collapse_to_matrices(matnames = "matrix.name", values = "value",
-                         rownames = "row.name", colnames = "col.name", 
-                         rowtypes = "row.type", coltypes = "col.type") %>% 
-    rename(
-      f = value  # For readability.  These are f vectors.
-    ) %>% 
-    # At this point, we now have our column of f vectors.
-    # Calculate g and V accordingly.
-    mutate(
-      g = elementproduct_byname(tfo, f),
-      V = matrixproduct_byname(C, hatize_byname(g)) %>% transpose_byname()
-    )
+    DF.s1 <- data.frame(F1 = seq(0, 1, by = 0.1)) %>%
+      mutate(
+        scenario=1,
+        F2 = 1 - F1,
+        sweep.val = F1 # This becomes the metadata column
+      ) %>% 
+      gather(key = col.name, value = value, F1, F2) %>% 
+      mutate( matrix.name = "f.split",
+              col.type="Industries",row.name="Products",row.type="Products") %>% 
+      group_by(sweep.val) %>%  
+      collapse_to_matrices(matnames = "matrix.name", values = "value",
+                           rownames = "row.name", colnames = "col.name",
+                           rowtypes = "row.type", coltypes = "col.type") %>% 
+      rename(f.split = value) %>%
+      cbind(.,mutate(DF.scenario.factors,scenario=NULL,f.split=NULL)) %>% 
+      mutate(    Y.colsum = elementproduct_byname(TFO, f.split))
+View(DF.s1)
