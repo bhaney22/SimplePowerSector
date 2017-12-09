@@ -12,42 +12,28 @@ rm(list=ls())
 source("Calc_IO_metrics.R")
 source("Conversions.R")
 #
-# Initial Input Parameters:
-# Eventually this code will go away as the initial values are built "in line" in the data frame.
-# For now however, leave as is....skip to the first DF <- data.frame....statement to begin
-# work.
+# Set Initial Input scalars, vectors, and matrices
 #
-
+# >>>>>>> New code BRH 2017.12.08
 #
-# New code BRH 2017.12.08
+# Make individual data.frames of vector or matrix input factors that are then cbinded to scalar inputs.
+# At the end of the DF.scenario.factors build, there is a cbind statement 
+# to put these in.
+# 
+# 
+# MKH TODO List: Can you show me how to:
+#     1. Make the A.mat (and other matrices) into a data.frame that
+#        uses gather/collapse like the Mfg.etas vector? I think I only
+#        have this figured out for vectors. 
+#     2. "Cbind" in byname world. We thought that the sum_byname would work
+#        like that, but it didn't with my data objects. I have two places
+#        where I need to do this: 
+#            a. to create the IO.phys = cbind(U,Y) and
+#            b. to make the prices matrix that is element by element
+#                multiplied to IO.phys to get the IO.curr matrix.
+#     3. Create the Z matrix.
+#     4. How to mutate TFO and have it work correctly in elementproduct with f.split 
 #
-# New approach - make the data column of an input factor that can be cbinded to the scalar inputs
-# See at the end of the DF.scenario.factors build, there is a cbind statement to put these in.
-#
-# This process works for Mfg.etas vector. Trying to get it to work for A.mat next.
-#
-Mfg.etas <- data.frame(I1 = 1,I2=1, I3=1/3, I4=0.40, I5=0.40,I6=0.50) %>%
-  gather(key = col.name, value = value, I1,I2,I3,I4,I5,I6) %>% 
-  mutate( matrix.name = "Mfg.etas",
-          col.type="Industries",row.name="Products",row.type="Products") %>% 
-  collapse_to_matrices(matnames = "matrix.name", values = "value",
-                       rownames = "row.name", colnames = "col.name",
-                       rowtypes = "row.type", coltypes = "col.type") %>% 
-  rename(Mfg.etas = value) 
-
-A.mat <- data.frame(matrix(c(0,0,1,1,0,0,
-                             0,0,0,0,1,1,
-                             0,0,0,0,0,0,
-                             0,0,0,0,0,0,
-                             0,0,0,0,0,0, 
-                             0,0,0,0,0,0),
-                           nrow = 6, ncol = 6, byrow = TRUE) %>%   
-                      setrownames_byname(product.names) %>% 
-                      setrowtype("Products") %>% 
-                      setcolnames_byname(industry.names) %>% 
-                      setcoltype("Industries")  )
-
-##########################################################################################################
 Res.n		<- 2		# number of extraction industries/products
 Mfg.n		<- 4		# number of intermediate industries/products
 Fin.n		<- 2 		# number of final output industries (should be perfect complements)
@@ -59,237 +45,141 @@ product.names   <- c(paste0("P",seq(1:Prod.n)))
 industry.names  <- c(paste0("I",seq(1:Ind.n)))
 fin.names       <- c(paste0("F",seq(1:Fin.n)))
 
-phys.units	  <-	"MW"
-Res.desc 	    <- matrix(c("Coal","NG"))
-Res.units	    <- c(rep(phys.units,2))
-
-Res.prices    <- matrix(c(55,3),
-  nrow = 1, ncol = Res.n, byrow = TRUE) %>%
-  setrownames_byname("Products") %>%
-  setrowtype("Products") %>%
-  setcolnames_byname(product.names[1:Res.n]) %>%
-  setcoltype("Products")
-
-Res.prices.units	<- c("MT","MMBTU")
-
-Mfg.prices    <- c(rep(1,Mfg.n))    ### Placeholder. There are no interindustry trades 
-                                    ### yet. All of the products are sold to the final 
-                                    ### sector.
-
-Fin.desc	<- c("Res","Com")
-Fin.units	<- c(rep(phys.units,2))
-Fin.prices <- c(0.10,0.10)
-Fin.prices.units	<- c("kWh","kWh")
-
-
-
 curr.scale	<- 10^(-6)
 curr.scale.display <- "Millions USD"
 
-Res.prices.conv <- Convert.prices(Res.prices,Res.prices.units,curr.scale) 
-Fin.prices.conv <- Convert.prices(Fin.prices,Fin.prices.units,curr.scale)
-Prod.prices.conv <- c(Res.prices.conv,Mfg.prices)
+#
+# Yeah! This works!
+#
+Mfg.etas <- data.frame(I1 = 1,I2=1, I3=1/3, I4=0.40, I5=0.40,I6=0.50) %>%
+  gather(key = col.name, value = value, I1,I2,I3,I4,I5,I6) %>% 
+  mutate( matrix.name = "Mfg.etas",
+          col.type="Industries",row.name="Products",row.type="Products") %>% 
+  collapse_to_matrices(matnames = "matrix.name", values = "value",
+                       rownames = "row.name", colnames = "col.name",
+                       rowtypes = "row.type", coltypes = "col.type") %>% 
+  rename(Mfg.etas = value) 
 
-f.split <- matrix(c(.5,.5),
-                  nrow = 1, ncol = 2, byrow = TRUE) %>%
-  setrownames_byname("Products") %>%
-  setrowtype("Products") %>%
-  setcolnames_byname(fin.names) %>%
-  setcoltype("Industries")
+f.split <- data.frame(F1 = .5, F2=.5) %>%
+  gather(key = col.name, value = value, F1, F2) %>% 
+  mutate( matrix.name = "f.split",
+          col.type="Industries",row.name="Products",row.type="Products") %>% 
+  collapse_to_matrices(matnames = "matrix.name", values = "value",
+                       rownames = "row.name", colnames = "col.name",
+                       rowtypes = "row.type", coltypes = "col.type") %>% 
+  rename(f.split = value) 
 
+#
+# Boo! I don't know how to byname-ize a matrix, only vectors like above. --brh
+#
+# MKH TODO list #1 project:
+#
+A.mat <- matrix(c(0,0,1,1,0,0,
+                  0,0,0,0,1,1,
+                  0,0,0,0,0,0,
+                  0,0,0,0,0,0,
+                  0,0,0,0,0,0, 
+                  0,0,0,0,0,0),
+                nrow = 6, ncol = 6, byrow = TRUE) %>%   
+  setrownames_byname(product.names) %>% 
+  setrowtype("Products") %>% 
+  setcolnames_byname(industry.names) %>% 
+  setcoltype("Industries")  
+
+#
+# BRH TODO: Byname-ize the following matrix after shown how to do it.
+#
 f.product.coeffs <- matrix(
-            c(0,0,
-              0,0,
-              0.6,0,
-              0.4, 0.0,
-              0, 0.3, 
-              0.0, .7),
-            nrow = 6, ncol = 2, byrow = TRUE) %>%   
-            setrownames_byname(product.names) %>% 
-            setrowtype("Products") %>% 
-            setcolnames_byname(fin.names) %>% 
-            setcoltype("Industries")  
+  c(0,0,
+    0,0,
+    0.6,0,
+    0.4, 0.0,
+    0, 0.3, 
+    0.0, .7),
+  nrow = 6, ncol = 2, byrow = TRUE) %>%   
+  setrownames_byname(product.names) %>% 
+  setrowtype("Products") %>% 
+  setcolnames_byname(fin.names) %>% 
+  setcoltype("Industries")  
+
+
+#
+# Convert from price per physical unit to price per MW
+# 
+#
+# Yeah! BRH byname-ized and converted units for all of the price vectors!
+#
+Res.prices <- data.frame(P1 = Convert.prices(55,"MT",curr.scale),
+                         P2 = Convert.prices(3,"MMBTU",curr.scale)) %>% 
+  gather(key = col.name, value = value, P1, P2) %>% 
+  mutate( matrix.name = "Res.prices",
+          col.type="Products",row.name="Products",row.type="Products") %>% 
+  collapse_to_matrices(matnames = "matrix.name", values = "value",
+                       rownames = "row.name", colnames = "col.name",
+                       rowtypes = "row.type", coltypes = "col.type") %>% 
+  rename(Res.prices = value)
+
+Mfg.prices <- data.frame(P3=1,P4=1,P5=1,P6=1) %>%     ### These are just placeholders, no wholesale trade yet.
+  gather(key = col.name, value = value, P5, P6) %>% 
+  mutate( matrix.name = "Fin.prices",
+          col.type="Products",row.name="Products",row.type="Products") %>% 
+  collapse_to_matrices(matnames = "matrix.name", values = "value",
+                       rownames = "row.name", colnames = "col.name",
+                       rowtypes = "row.type", coltypes = "col.type") %>% 
+  rename(Mfg.prices = value)
+
+Fin.prices <- data.frame(F1 = Convert.prices(.10,"kWh",curr.scale),
+                         F2 = Convert.prices(.10,"kWh",curr.scale)) %>% 
+  gather(key = col.name, value = value, F1, F2) %>% 
+  mutate( matrix.name = "Fin.prices",
+          col.type="Products",row.name="Products",row.type="Products") %>% 
+  collapse_to_matrices(matnames = "matrix.name", values = "value",
+                       rownames = "row.name", colnames = "col.name",
+                       rowtypes = "row.type", coltypes = "col.type") %>% 
+  rename(Fin.prices = value)
+
+#
+# Boo! The following code isn't working the way I need it to.
+#
+#
+
+# All of the prices are ultimately used to create the prices matrix that is the same
+# dimension and col/row names as the IO.phys matrix. 
+#
+
+# MKH TODO list #2 project: How do I need to created my data objects so that they 
+# work with sum_byname? (Same problem that has to be solved for 
+# IO.phys = sum_byname(U,Y), which didn't work as expected either.)
+#
+
+prices.mat <- sum_byname(Res.prices,Mfg.prices) %>% sum_byname(.,Fin.prices)
 
 
 
-
-prices.mat <- cbind(
-    prod.prices.mat <- matrix(cbind(Prod.prices.conv),nrow=Prod.n,ncol=Ind.n) %>% 
-  setcolnames_byname(industry.names)  %>% 
-  setrownames_byname(product.names) %>%
-  setcoltype("Industries") %>%
-  setrowtype("Products"),
-    fin.prices.mat <- matrix(cbind(Fin.prices.conv),nrow=Prod.n,ncol=Fin.n) %>%
-  setcolnames_byname(fin.names)  %>% 
-  setrownames_byname(product.names) %>%
-  setcoltype("Industries") %>%
-  setrowtype("Products"))
-
-
-########################
-# Evenutally the above code will be incorporated into the DF.scenario.factors build
-# "In line". But, will leave it this way for now and focus on getting the other aspects
-# correct.
-########################
+##########################################################################################################
 
 
 DF.scenario.factors <- data.frame(scenario = 0) %>%
   mutate( TFO = 200,
-          Res.n = Res.n,  # <- 2
-          Mfg.n	= Mfg.n, #	<- 4		# number of intermediate industries/products
-          Fin.n	= Fin.n, #	<- 2 		# number of final output industries (should be perfect complements)
-          
-          phys.units = phys.units, #	  <-	"MW"
-          Res.desc = lapply(X=scenario, function(X) {Res.desc}), # 	    <- matrix(c("Coal","NG"))
-          Res.units = lapply(X=scenario, function(X) {Res.units}), #	    <- c(rep(phys.units,2))
-          Res.prices = lapply(X=scenario, function(X) {Res.prices}), #   <- c(55,3)
-          Res.prices.units = lapply(X=scenario, function(X) {Res.prices.units}), #	<- c("MT","MMBTU")
-          
-          Mfg.prices  = lapply(X=scenario, function(X) {Mfg.prices}), #  <- c(rep(1,Mfg.n))    ### Placeholder. There are no interindustry trades 
-                                                            ### yet. All of the products are sold to the final 
-                                                              ### sector.
-          
-          Fin.desc = lapply(X=scenario, function(X) {Fin.desc}), #	<- c("Res","Com")
-          Fin.units	= lapply(X=scenario, function(X) {Fin.units}), # <- c(rep(phys.units,2))
-          Fin.prices = lapply(X=scenario, function(X) {Fin.prices}), # <- c(0.10,0.10)
-          Fin.prices.units = lapply(X=scenario, function(X) {Fin.prices.units}), #	<- c("kWh","kWh")
-  
-          Prod.n = Prod.n, # <- Res.n + Mfg.n
-          Ind.n = Ind.n , #  <- Res.n + Mfg.n
-
-          curr.scale = curr.scale, #	<- 10^(-6)
-          curr.scale.display = curr.scale.display, # <- "Millions USD"
-          f.split = lapply(X=scenario, FUN = function(X) f.split),
-          f.product.coeffs = lapply(X=scenario, FUN = function(X) f.product.coeffs))%>%
+          A.mat = lapply(X=scenario, function(X) A.mat),
+          f.product.coeffs = lapply(X=scenario, function(X) f.product.coeffs))%>%
 ##
-## cbind all of the initial matrices here
+## cbind all of the initial matrices here. Hopefully the two holdouts above
+## A.mat and f.product.coeffs will be added to the cbind list soon!
 ##
-          cbind(.,Mfg.etas,A.mat) %>%
+          cbind(.,Mfg.etas,Res.prices,Mfg.prices,Fin.prices,f.split) %>%
           select(order(colnames(.)))
-
-###
-### End of Scenarios df build
-###
-
+###############################################################################
 #
-# Begin building Eurostat matrices using all of the rows of input factors 
-# based on the different scenarios:
+# NEW SECTION: BUILD OUT SCENARIOS
+# Three working prototype scenarios are built -- brh
 #
+###############################################################################
 
-############################################################################################
-# MKH work area:
-
-### HERE BEGINS THE PROBLEM. When there is more than one scenario in the DF.scenario.factors
-### data.frame, the following
-### code does not compute correctly. 
-###
-### It would be helpful if you could see what
-### needs to be adjusted - either how the DF.scenario.factors are built or
-### how the DF.eurostat uses them to build out the matrices.  Or how the process
-### works in general.
-###
-### I assume that if you get it working correctly for the first variable in the 
-### DF.eurostat, the rest will fall into place. It will be easy to double check that...
-### The second DF.eurostat statement (after the commented line below) builds out everything.
-###
-# DF.eurostat <- DF.scenario.factors %>% 
-#   mutate(
-#     Y.colsum = elementproduct_byname(TFO, f.split)
-#   )
-#   
-#############  The following commands build out the entire DF.eurostat  ###################
-#  DF.eurostat <- DF.scenario.factors %>% 
-#   mutate(
-#     Y.colsum = elementproduct_byname(TFO, f.split),
-#           Y = matrixproduct_byname(f.product.coeffs,hatize_byname(Y.colsum)),
-#           y = rowsums_byname(Y),
-#           A.mat = lapply(X=scenario, function(X) A.mat),
-#           Z = lapply(X=scenario, FUN = function(X) Mfg.etas  %>% 
-#               matrix(rbind(rep(.,Prod.n)),nrow=Prod.n,ncol=Ind.n)  %>% 
-#               setrownames_byname(product.names ) %>% 
-#               setrowtype("Products") %>% 
-#               setcolnames_byname(industry.names) %>% 
-#               setcoltype("Industries")  %>%
-#               elementquotient_byname(A.mat,.)),
-#           D = transpose_byname(identize_byname(Z)),
-#           A = matrixproduct_byname(Z,D),
-#           q = matrixproduct_byname(invert_byname(Iminus_byname(A)),y),
-#           V = matrixproduct_byname(D,hatize_byname(q)),
-#           g = rowsums_byname(V),
-#           U = matrixproduct_byname(Z,hatize_byname(g))   )
-# 
-# DF.eurostat %>% 
-#   mutate( IO.phys = lapply(X=scenario, function(X) {
-#                       matrix(unlist(cbind(U,Y)),
-#                              nrow=Prod.n,ncol=(Ind.n+Fin.n),byrow=T ) %>%
-#                         setcolnames_byname(c(industry.names,fin.names))  %>% 
-#                         setrownames_byname(product.names) %>%
-#                         setcoltype("Industries") %>%
-#                         setrowtype("Products")}), 
-#           
-#                     IO.phys.sumall = sumall_byname(IO.phys),
-#           
-#                     TST.phys = lapply(X=scenario, function(X) { ## should be same as sumall
-#                       unlist(calc.IO.metrics(matrix(unlist(IO.phys),
-#                               nrow=Prod.n,ncol=(Ind.n+Fin.n),byrow=T ))["TST"] )}),
-#           
-#                     alpha.phys = lapply(X=scenario, function(X) {
-#                       unlist(calc.IO.metrics(matrix(unlist(IO.phys),
-#                               nrow=Prod.n,ncol=(Ind.n+Fin.n),byrow=T ))["alpha"] )}),
-#           
-#                     F.phys = lapply(X=scenario, function(X) {
-#                       unlist(calc.IO.metrics(matrix(unlist(IO.phys),
-#                               nrow=Prod.n,ncol=(Ind.n+Fin.n),byrow=T ))["F"] )}),
-#           
-#         IO.curr = lapply(X=scenario, function(X) {
-#                       elementproduct_byname(prices.mat,IO.phys) }),
-#               #      %>% sort_rows_cols(.,colorder=(c(industry.names,fin.names))) })  ) ##########  
-#                     IO.curr.sumall = sumall_byname(IO.curr),
-#                     TST.curr = lapply(X=scenario, function(X) { ## should be same as sumall
-#                       unlist(calc.IO.metrics(matrix(unlist(IO.curr),
-#                               nrow=Prod.n,ncol=(Ind.n+Fin.n),byrow=T ))["TST"] )}),
-#                     alpha.curr = lapply(X=scenario, function(X) {
-#                       unlist(calc.IO.metrics(matrix(unlist(IO.curr),
-#                                                     nrow=Prod.n,ncol=(Ind.n+Fin.n),byrow=T ))["alpha"] )}),
-#                     F.curr = lapply(X=scenario, function(X) {
-#                       unlist(calc.IO.metrics(matrix(unlist(IO.curr),
-#                                                     nrow=Prod.n,ncol=(Ind.n+Fin.n),byrow=T ))["F"] )})) 
-
-#########################################################################################################
-# End of Eurostat DF
-#########################################################################################################
-#
-# End of MKH work area. To avoid code conflicts, I will work only below this area.
-#
-# Beginning of BRH work area:
-#
-##
-## Example scenario build using gather & collapse:
-##
-# DF3 <- data.frame(i1 = seq(0, 1, by = 0.1)) %>% 
-#   mutate(
-#     i2 = 1 - i1,
-#     f1 = i1 # This becomes the metadata column
-#   ) %>% 
-#   gather(key = row.name, value = value, i1, i2) %>%
-#   mutate(
-#     matrix.name = "f",col.name="Products",row.type="Industries",col.type="Products") %>% 
-#   group_by(f1) %>% 
-#   collapse_to_matrices(matnames = "matrix.name", values = "value",
-#                        rownames = "row.name", colnames = "col.name", 
-#                        rowtypes = "row.type", coltypes = "col.type") %>% 
-#   rename(f = value) %>% 
-#   mutate(
-#     g = elementproduct_byname(tfo, f),
-#     V = matrixproduct_byname(C, hatize_byname(g)) %>% transpose_byname()
-#   )
-  ##
-  ## Create scenarios:
-  ##
     DF.s1 <- data.frame(F1 = seq(0, 1, by = 0.1)) %>%
       mutate(
         F2 = 1 - F1,
-        sweep.val = F1 # This becomes the metadata column
+        sweep.val = F1 
       ) %>% 
       gather(key = col.name, value = value, F1, F2) %>% 
       mutate( matrix.name = "f.split",
@@ -333,27 +223,105 @@ DF.s2 <- data.frame(P1 = seq(55,555,by=100)) %>%
       scenario=3,sweep.factor = "Mfg.etas") %>%
     cbind(.,mutate(DF.scenario.factors,scenario=NULL,Mfg.etas=NULL)) %>%
     select(order(colnames(.)))
-
+  
+  ###
+  ### MKH TODO List #4: Why doesn't this one work???
+  ###
+  # DF.s4 <- data.frame( TFO = seq(10, 100, by = 10)) %>%
+  #   mutate(
+  #     scenario=2,
+  #     sweep.factor = "TFO",
+  #     sweep.val = TFO 
+  #   ) %>%
+  #   cbind(.,mutate(DF.scenario.factors,scenario=NULL,TFO=NULL)) %>%
+  #   select(order(colnames(.)))
+  
 DF.scenarios <- data.frame(rbind(DF.s1,DF.s2,DF.s3)) 
-#
+###########################################################################
+# 
+# NEW SECTION
 # Once all scenarios are built, create all of the eurostat matrices.
 #
+###########################################################################
 DF.eurostat <- data.frame(DF.scenarios) %>% 
   mutate(    Y.colsum = elementproduct_byname(TFO, f.split),
              Y = matrixproduct_byname(f.product.coeffs,hatize_byname(Y.colsum)),
-             y = rowsums_byname(Y))
-
-
-
-
+             y = rowsums_byname(Y),
+          A.mat = lapply(X=scenario, function(X) A.mat))
+##
+## WORKING CODE STOPS HERE.
+##
+################################################################################
 ###
-### Why doesn't this one work???
+### MKH TODO list #3: the dang Z matrix!
 ###
-# DF.s2 <- data.frame( TFO = seq(10, 100, by = 10)) %>%
-#   mutate(
-#     scenario=2,
-#     sweep.factor = "TFO",
-#     sweep.val = TFO # This becomes the metadata column
-#   ) %>%
-#   cbind(.,mutate(DF.scenario.factors,scenario=NULL,TFO=NULL)) %>%
-#   select(order(colnames(.)))
+DF.eurostat  %>% 
+  mutate(
+          Z = lapply(X=scenario, function(X) { Mfg.etas  %>%
+              matrix(rbind(rep(.,Prod.n)),nrow=Prod.n,ncol=Ind.n,byrow=T)  %>% 
+              setrownames_byname(product.names ) %>%
+              setrowtype("Products") %>%
+              setcolnames_byname(industry.names) %>%
+              setcoltype("Industries")  %>%
+              elementquotient_byname(A.mat,.)} ) )
+DF.eurostat  %>% 
+  mutate( D = transpose_byname(identize_byname(Z)),
+          A = matrixproduct_byname(Z,D),
+          q = matrixproduct_byname(invert_byname(Iminus_byname(A)),y),
+          V = matrixproduct_byname(D,hatize_byname(q)),
+          g = rowsums_byname(V),
+          U = matrixproduct_byname(Z,hatize_byname(g))   )
+
+###############################################################################
+#
+# NEW SECTION: Run the results
+# 
+###############################################################################
+## MKH TODO list #2 (continued) 
+## the following code works, but is there a better way to do it?
+##
+DF.eurostat %>%
+  mutate( IO.phys = lapply(X=scenario, function(X) {
+                      matrix(unlist(cbind(U,Y)),
+                             nrow=Prod.n,ncol=(Ind.n+Fin.n),byrow=T ) %>%
+                        setcolnames_byname(c(industry.names,fin.names))  %>%
+                        setrownames_byname(product.names) %>%
+                        setcoltype("Industries") %>%
+                        setrowtype("Products")}),
+
+                    IO.phys.sumall = sumall_byname(IO.phys),
+
+                    TST.phys = lapply(X=scenario, function(X) { ## should be same as sumall
+                      unlist(calc.IO.metrics(matrix(unlist(IO.phys),
+                              nrow=Prod.n,ncol=(Ind.n+Fin.n),byrow=T ))["TST"] )}),
+
+                    alpha.phys = lapply(X=scenario, function(X) {
+                      unlist(calc.IO.metrics(matrix(unlist(IO.phys),
+                              nrow=Prod.n,ncol=(Ind.n+Fin.n),byrow=T ))["alpha"] )}),
+
+                    F.phys = lapply(X=scenario, function(X) {
+                      unlist(calc.IO.metrics(matrix(unlist(IO.phys),
+                              nrow=Prod.n,ncol=(Ind.n+Fin.n),byrow=T ))["F"] )}),
+
+        IO.curr = lapply(X=scenario, function(X) {
+                      elementproduct_byname(prices.mat,IO.phys) }),
+ ### MKH Bonus question - how do I do this ----->   %>% sort_rows_cols(.,colorder=(c(industry.names,fin.names))) })  ) ##########
+                    IO.curr.sumall = sumall_byname(IO.curr),
+                    TST.curr = lapply(X=scenario, function(X) { ## should be same as sumall
+                      unlist(calc.IO.metrics(matrix(unlist(IO.curr),
+                              nrow=Prod.n,ncol=(Ind.n+Fin.n),byrow=T ))["TST"] )}),
+                    alpha.curr = lapply(X=scenario, function(X) {
+                      unlist(calc.IO.metrics(matrix(unlist(IO.curr),
+                                                    nrow=Prod.n,ncol=(Ind.n+Fin.n),byrow=T ))["alpha"] )}),
+                    F.curr = lapply(X=scenario, function(X) {
+                      unlist(calc.IO.metrics(matrix(unlist(IO.curr),
+                                                    nrow=Prod.n,ncol=(Ind.n+Fin.n),byrow=T ))["F"] )}))
+
+#########################################################################################################
+# End 
+#########################################################################################################
+
+
+
+
+
