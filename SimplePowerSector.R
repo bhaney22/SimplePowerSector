@@ -43,14 +43,14 @@ curr.scale.display <- "Millions USD"
 #                        rowtypes = "row.type", coltypes = "col.type") %>% 
 #   rename(Mfg.etas = value)
 
-Mfg.etas.mat <- matrix(rep(c(1,1,1/3,.4,.4,.5),Prod.n),
+Mfg.etas.mat <- matrix(rep(c(1, 1, 1/3, 0.4, 0.4, 0.5),Prod.n),
                       nrow = Prod.n, ncol = Ind.n, byrow = TRUE) %>%
                       setrownames_byname(product.names) %>%
                       setrowtype("Products") %>%
                       setcolnames_byname(industry.names) %>%
                       setcoltype("Industries")
 
-f.split <- data.frame(F1 = .5, F2=.5) %>%
+f.split <- data.frame(F1 = 0.5, F2 = 0.5) %>%
   gather(key = col.name, value = value, F1, F2) %>% 
   mutate( matrix.name = "f.split",
           col.type="Industries",row.name="Products",row.type="Products") %>% 
@@ -90,12 +90,12 @@ A.mat <- matrix(c(0,0,1,1,0,0,
 #   rename(A.mat = value) 
 
 f.product.coeffs <- matrix(
-  c(0,0,
-    0,0,
-    0.6,0,
+  c(0.0, 0.0,
+    0.0, 0.0,
+    0.6, 0.0,
     0.4, 0.0,
-    0, 0.3, 
-    0.0, .7),
+    0.0, 0.3, 
+    0.0, 0.7),
   nrow = 6, ncol = 2, byrow = TRUE) %>%   
   setrownames_byname(product.names) %>% 
   setrowtype("Products") %>% 
@@ -145,8 +145,8 @@ f.product.coeffs <- matrix(
 Prices.mat <- matrix(c(rep(Convert.prices(55,"MT",curr.scale),Ind.n),0,0,   # Row 1: P1 
                        rep(Convert.prices(3,"MMBTU",curr.scale),Ind.n),0,0, # Row 2: P2 
                        rep(c(0,0,0,0,0,0,
-                       Convert.prices(.10,"kWh",curr.scale),    # Row 3-6: P3-P6=0
-                       Convert.prices(.10,"kWh",curr.scale)),Mfg.n)),   # then F1,F2
+                       Convert.prices(0.10,"kWh",curr.scale),    # Row 3-6: P3-P6=0
+                       Convert.prices(0.10,"kWh",curr.scale)),Mfg.n)),   # then F1,F2
                        nrow = Prod.n, ncol = Ind.n + Fin.n, byrow = TRUE) %>% 
   setrownames_byname(product.names) %>%
   setrowtype("Products") %>%
