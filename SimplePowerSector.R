@@ -15,25 +15,7 @@ source("Conversions.R")
 # Set Initial Input scalars, vectors, and matrices
 #
 #
-# Make individual data.frames of vector or matrix input factors that are then cbinded to scalar inputs.
-# At the end of the DF.scenario.factors build, there is a cbind statement 
-# to put these in.
-# 
-# 
-# MKH TODO List: Can you show me how to:
-#     1. DONE! Make the A.mat (and other matrices) into a data.frame that
-#        uses gather/collapse like the Mfg.etas vector? I think I only
-#        have this figured out for vectors. DONE!
-#     2. "Cbind" in byname world. We thought that the sum_byname would work
-#        like that, but it didn't with my data objects. I have two places
-#        where I need to do this: 
-#            a. DONE! to create the IO.phys = sum_byname(U,Y)   WORKS NOW! DONE
-#            b. (Still needed ) to make the prices matrix that is element by element
-#                multiplied to IO.phys to get the IO.curr matrix.
-#     3. DONE! Create the Z matrix. DONE!
-#     4. (still needed, I think, I haven't looked at this since all of the changes)
-#       How to mutate TFO and have it work correctly in elementproduct with f.split 
-#
+
 Res.n		<- 2		# number of extraction industries/products
 Mfg.n		<- 4		# number of intermediate industries/products
 Fin.n		<- 2 		# number of final output industries (should be perfect complements)
@@ -48,9 +30,6 @@ fin.names       <- c(paste0("F",seq(1:Fin.n)))
 curr.scale	<- 10^(-6)
 curr.scale.display <- "Millions USD"
 
-#
-# Yeah! This works!
-#
 # Mfg.etas <- data.frame(I1 = 1,I2=1, I3=1/3, I4=0.40, I5=0.40,I6=0.50) %>%
 #   gather(key = col.name, value = value, I1,I2,I3,I4,I5,I6) %>% 
 #   mutate( matrix.name = "Mfg.etas",
@@ -59,14 +38,6 @@ curr.scale.display <- "Millions USD"
 #                        rownames = "row.name", colnames = "col.name",
 #                        rowtypes = "row.type", coltypes = "col.type") %>% 
 #   rename(Mfg.etas = value)
-
-# Failed attempt #1
-# Mfg.etas.mat <- data.frame(matrix(rbind(Mfg.etas,Mfg.etas,Mfg.etas,
-#                                         Mfg.etas,Mfg.etas,Mfg.etas) %>%
-#   setrownames_byname(product.names) %>% 
-#   setrowtype("Products") %>% 
-#   setcolnames_byname(industry.names) %>% 
-#   setcoltype("Industries") ) )
 
 Mfg.etas.mat <- matrix(rep(c(1,1,1/3,.4,.4,.5),Prod.n),
                       nrow = Prod.n, ncol = Ind.n, byrow = TRUE) %>%
@@ -84,11 +55,6 @@ f.split <- data.frame(F1 = .5, F2=.5) %>%
                        rowtypes = "row.type", coltypes = "col.type") %>% 
   rename(f.split = value) 
 
-#
-# Boo! I don't know how to byname-ize a matrix, only vectors like above. --brh
-#
-# MKH TODO list #1 project:
-#
 A.mat <- matrix(c(0,0,1,1,0,0,
                   0,0,0,0,1,1,
                   0,0,0,0,0,0,
@@ -102,38 +68,19 @@ A.mat <- matrix(c(0,0,1,1,0,0,
   setcoltype("Industries")
 
 # I'm not sure that you need to use collapse to make A.mat. 
-# The code above is just fine.
-# But if you want to use collapse, you might try the code below.
-# Note that you DON'T need to create all rows and columns, 
-# only rows and columns for which non-zero entries are present.
-# The _byname functions will add rows or columns of zeroes as needed
-# When A.mat is an operand in one of the functions.
+# A.mat.2 <- data.frame(value = c(1,1,1,1)) %>% 
+#   mutate(
+#     rownames = c("P1", "P1", "P2", "P2"),
+#     colnames = c("I3", "I4", "I5", "I6"),
+#     mat.name = rep.int("A.mat", 4),
+#     rowtypes = rep.int("Products", 4),
+#     coltypes = rep.int("Industries", 4)
+#   ) %>% 
+#   collapse_to_matrices(matnames = "mat.name", values = "value",
+#                        rownames = "rownames", colnames = "colnames", 
+#                        rowtypes = "rowtypes", coltypes = "coltypes") %>% 
+#   rename(A.mat = value) 
 
-#
-# BRH to MKH
-# 1. I want to be able to just cbind this matrix as a data element so that 
-# I can use it in linear algebra functions, the current A.mat approach 
-# seems to break down along the way.
-#
-# 2. A.mat.2 doesn't create the A.mat matrix when I run the code.
-#
-#
-A.mat.2 <- data.frame(value = c(1,1,1,1)) %>% 
-  mutate(
-    rownames = c("P1", "P1", "P2", "P2"),
-    colnames = c("I3", "I4", "I5", "I6"),
-    mat.name = rep.int("A.mat", 4),
-    rowtypes = rep.int("Products", 4),
-    coltypes = rep.int("Industries", 4)
-  ) %>% 
-  collapse_to_matrices(matnames = "mat.name", values = "value",
-                       rownames = "rownames", colnames = "colnames", 
-                       rowtypes = "rowtypes", coltypes = "coltypes") %>% 
-  rename(A.mat = value) 
-
-#
-# BRH TODO: Byname-ize the following matrix after shown how to do it.
-#
 f.product.coeffs <- matrix(
   c(0,0,
     0,0,
@@ -151,9 +98,6 @@ f.product.coeffs <- matrix(
 #
 # Convert from price per physical unit to price per MW
 # 
-#
-# Yeah! BRH byname-ized and converted units for all of the price vectors!
-#
 Res.prices <- data.frame(I1 = Convert.prices(55,"MT",curr.scale),
                          I2 = Convert.prices(3,"MMBTU",curr.scale)) %>% 
   gather(key = col.name, value = value, I1, I2) %>% 
@@ -183,30 +127,12 @@ Fin.prices <- data.frame(F1 = Convert.prices(.10,"kWh",curr.scale),
                        rowtypes = "row.type", coltypes = "col.type") %>% 
   rename(Fin.prices = value)
 
-#
-# Boo! The following code isn't working the way I need it to.
-#
-#
-
-# All of the prices are ultimately used to create the prices matrix that is the same
-# dimension and col/row names as the IO.phys matrix. 
-#
-
-# MKH TODO list #2 project: How do I need to create prices.mat so that I 
-# can matrixproduct_byname(IO.phys,prices.mat)
-#
-
 U.mat.pattern <- matrix(rep(0,Prod.n * (Ind.n +Fin.n)),
                 nrow = Prod.n, ncol = (Ind.n + Fin.n), byrow = TRUE) %>% 
   setrownames_byname(product.names) %>%
   setrowtype("Products") %>%
   setcolnames_byname(c(industry.names,fin.names)) %>%
   setcoltype("Industries")
-
-# Nope.
-# prices.mat <- sum_byname(U.mat.pattern,Res.prices)
-# prices.mat
-
 
 ##########################################################################################################
 #
@@ -319,58 +245,60 @@ DF.IO2b <- data.frame(P2 = c(Convert.prices(3,"MMBTU",curr.scale),
 DF.scenarios <- data.frame(rbind(DF.IO1,DF.IO2a,DF.IO2b))
 ###########################################################################
 # 
-# NEW SECTION
-# Once all scenarios are built, create all of the eurostat matrices.
+# STEP 3:
+# Once all scenarios are built, create all of the eurostat matrices 
+# and the IO flow tables that come from them.
 #
+# MKH Question: The following warning gest thrown for every observation
+# when building the eurostat DF. From my trying different things, I think
+# it has something to do with the A.mat, but nto sure.
+# 
+# Warning messages:
+#   1: In matrix(a, nrow = nrow(b), ncol = ncol(b), dimnames = dimnames(b)) :
+#   data length [17] is not a sub-multiple or multiple of the number of columns [2]
 ###########################################################################
 DF.eurostat <- data.frame(DF.scenarios) %>% 
-  mutate(    Y.colsum = elementproduct_byname(TFO, f.split),
-             Y = matrixproduct_byname(f.product.coeffs,hatize_byname(Y.colsum)),
-             y = rowsums_byname(Y)) 
-#
-# BRH to MKH - This is what I am trying to get to...only linear algebra in eurostat code
-#
-DF.eurostat <- data.frame(DF.eurostat) %>% 
-  mutate( Z =  elementproduct_byname(Mfg.etas.mat,A.mat),
+  mutate( Y.colsum = elementproduct_byname(TFO, f.split),
+          Y = matrixproduct_byname(f.product.coeffs,hatize_byname(Y.colsum)),
+          y = rowsums_byname(Y),
+          Z =  elementproduct_byname(Mfg.etas.mat,A.mat),
           D = transpose_byname(identize_byname(Z)),
           A = matrixproduct_byname(Z,D),
           q = matrixproduct_byname(invert_byname(Iminus_byname(A)),y),
           V = matrixproduct_byname(D,hatize_byname(q)),
           g = rowsums_byname(V),
-          U = matrixproduct_byname(Z,hatize_byname(g))   )
+          U = matrixproduct_byname(Z,hatize_byname(g)),
+          IO.phys = sum_byname(U,Y) %>% 
+            sort_rows_cols(.,colorder=(c(industry.names,fin.names)))   )
 
 ###############################################################################
 #
-# NEW SECTION: Run the results
+# STEP 3: Run the results
 # 
 #################################################################################
-DF.eurostat <- data.frame(DF.eurostat) %>% 
-  mutate(IO.phys = sum_byname(U,Y) %>% 
-           sort_rows_cols(.,colorder=(c(industry.names,fin.names))),
-         IO.phys.sumall = sumall_byname(IO.phys))
+DF.results <- data.frame(DF.eurostat) %>% 
+  mutate(IO.phys.sumall = sumall_byname(IO.phys),
+         PRR = TFO/(as.numeric(IO.phys.sumall)-TFO))
 
 ###############################################################################
-## MKH TODO list #2b (continued) 
+## BRH TODO  
 ## the following code doesn't work yet because prices.mat isn't built correctly
 ## yet.
 ##
 ##############################################################################
-DF.eurostat <- data.frame(DF.eurostat) %>% 
-  mutate(IO.curr = elementproduct_byname(prices.mat,IO.phys),
-         IO.curr.sumall = sumall_byname(IO.curr))
+# DF.eurostat <- data.frame(DF.eurostat) %>% 
+#   mutate(IO.curr = elementproduct_byname(prices.mat,IO.phys),
+#          IO.curr.sumall = sumall_byname(IO.curr))
 
 ######################################################################################
-###
-### BRH believes the code works up to here! Yeah!
-###
 ###
 ### BRH TODO: 
 ###   1. figure out how to call the calc IO metrics function within DF
 ###
 #######################################################################################
-DF.eurostat <- data.frame(DF.eurostat) %>% mutate(TST.phys = calc.TST(IO.phys),
-                                                  alpha.phys = calc.alpha(IO.phys),
-                                                  F.phys = calc.F(IO.phys)) 
+# DF.eurostat <- data.frame(DF.eurostat) %>% mutate(TST.phys = calc.TST(IO.phys),
+#                                                   alpha.phys = calc.alpha(IO.phys),
+#                                                   F.phys = calc.F(IO.phys)) 
 
 #########################################################################################################
 # End 
