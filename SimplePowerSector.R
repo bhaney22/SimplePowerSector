@@ -317,18 +317,15 @@ DF.results <- data.frame(DF.eurostat) %>%
          IO.curr.sumall = sumall_byname(IO.curr),
          PRR.phys = TFO/(as.numeric(IO.phys.sumall)-TFO) )
 
-######################################################################################
-###
-### BRH TODO: 
-###   1. figure out how to call the calc IO metrics function within DF
-###
-#######################################################################################
-# DF.results <- data.frame(DF.results) %>% mutate(TST.phys = calc.TST(as.matrix(IO.phys)))
-                                                
-                                                # ,
-                                                #   alpha.phys = calc.alpha(IO.phys),
-                                                #   F.phys = calc.F(IO.phys))
+ DF.results  <- DF.results %>% mutate(TST.phys = lapply(X=IO.phys, function(X) calc.TST(X)),
+                                      alpha.phys = lapply(X=IO.phys, function(X) calc.alpha(X)),
+                                      F.phys = lapply(X=IO.phys, function(X) calc.F(X)),
+                                      TST.curr = lapply(X=IO.curr, function(X) calc.TST(X)),
+                                      alpha.curr = lapply(X=IO.curr, function(X) calc.alpha(X)),
+                                      F.curr = lapply(X=IO.curr, function(X) calc.F(X)))
 
+
+ 
 #########################################################################################################
 # End 
 #########################################################################################################
