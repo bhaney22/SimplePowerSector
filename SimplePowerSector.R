@@ -95,10 +95,10 @@ A.mat <- matrix(c(0,0,1,1,0,0,
 f.product.coeffs <- matrix(
   c(0.0, 0.0,
     0.0, 0.0,
-    0.6, 0.0,
-    0.4, 0.0,
-    0.0, 0.3, 
-    0.0, 0.7),
+    0.25, 0.4,
+    0.25, 0.1,
+    0.25, 0.2, 
+    0.25, 0.3),
   nrow = 6, ncol = 2, byrow = TRUE) %>%   
   setrownames_byname(product.names) %>% 
   setrowtype("Products") %>% 
@@ -331,63 +331,6 @@ DF.results <- data.frame(DF.eurostat) %>%
 #########################################################################################################
 # End  Results
 #########################################################################################################
-
-#########################################################################################################
-# Begin Plots
-#########################################################################################################
-
-
- 
- ##################################################################################
- # Function: create.network.pdf
- # Draw the network: help pages are here
- # http://igraph.org/r/doc/graph_from_adjacency_matrix.html 
- ##################################################################################
-# 
-# Set indexes to point to different nodes.
-#
-nodes.n	<- Res.n + Mfg.n + Fin.n
-Mfg.first	<- Res.n + 1		# node number of first Mfg
-Fin.first	<- Res.n + Mfg.n + 1	# node number of first Fin
-
-Res.nodes	<- seq(1,Res.n)
-Mfg.nodes	<- seq(Mfg.first,length=Mfg.n)
-Fin.nodes	<- seq(Fin.first,length=Fin.n)
-
-   groups 	<- list(	"Input Units" =c(Res.nodes),
-                    "Efficiency"=c(Mfg.nodes),
-                    "Output Units"=c(Fin.nodes))
-   groups.curr	<- list(	"Input Prices"=c(Res.nodes),
-                        "Value-Added"=c(Mfg.nodes),
-                        "Output Prices"=c(Fin.nodes))
-   # 
-   shapes <- c(rep("ellipse",Res.n),rep("rectangle",Mfg.n),rep("ellipse",Fin.n))
-   L <- matrix(c(
-     0,2.5, 0,.5,
-     1,3, 1,2, 1,1, 1,0,
-     2,2.5, 2,.5),
-     ncol=2,byrow=TRUE)
-   # 
-   # options(width=200)
-   # pdf(file=paste(image.dir,"Flows_phys_",run.num,".pdf",sep=""))
-   qgraph(DF.results$IO.phys[[5]][,3:8],  ### BRH TODO - figure this out
-          edge.labels=T,
-          edge.label.cex=1.25,edge.color="black",fade=F,
-          # BRH Commented out during csv file creation
-          # not working edge.label.position=c(rep(.5,Res.n),rep(.7,Mfg.n),rep(.7,Fin.n)),
-          layout=L,
-          groups=groups,
-          borders=F,
-          labels=c(industry.names,fin.names),
-          # nodeNames=nodes.names.phys.legend,
-          shape=shapes,
-          palette="colorblind",
-          title=paste("(Flows in MW)",sep=""))
-   # dev.off()
-   # 
-   # options(width=200)
-   # pdf(file=paste(image.dir,"Flows_curr_",run.num,".pdf",sep=""))
-  #  }
 
 
 
