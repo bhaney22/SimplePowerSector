@@ -49,7 +49,6 @@ running_list_for_expand.grid$f1 <- f1s
 # Add fpc values to our list
 fpc.names <- paste0("fpc_", c("31", "32", "41", "42", "51", "52"))
 fpc_list <- lapply(fpc.names, function(fpcn){fpcs}) %>% set_names(fpc.names)
-# Add to our list
 for(i in 1:length(fpc_list)){
   running_list_for_expand.grid[[names(fpc_list)[[i]]]] <- fpc_list[[i]]
 }
@@ -57,7 +56,6 @@ for(i in 1:length(fpc_list)){
 # Add gamma values to our list
 gamma.names <- paste0("gamma_", names(mfg.etas.base))
 gamma_list <- lapply(gamma.names, function(gn){gammas}) %>% set_names(gamma.names)
-# Add to our list
 for(i in 1:length(gamma_list)){
   running_list_for_expand.grid[[names(gamma_list)[[i]]]] <- gamma_list[[i]]
 }
@@ -65,7 +63,6 @@ for(i in 1:length(gamma_list)){
 # Add mu values to our list
 mu.names <- paste0("mu_", names(prices.base))
 mu_list <- lapply(mu.names, function(mn){mus}) %>% set_names(mu.names)
-# Add to our list
 for(i in 1:length(mu_list)){
   running_list_for_expand.grid[[names(mu_list)[[i]]]] <- mu_list[[i]]
 }
