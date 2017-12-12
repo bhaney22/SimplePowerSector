@@ -68,7 +68,18 @@ for (l in list(fpc_list, gamma_list, mu_list)){
   }
 }
 
-
-DF.scenario.factors <- expand.grid(running_list_for_expand.grid)
+DF.scenario.factors <- expand.grid(running_list_for_expand.grid) %>%
+  mutate(
+    # Calculate auxiliary varlues
+    f2 = 1 - f1,
+    fpc_61 = 1 - fpc_31 - fpc_41 - fpc_51, 
+    fpc_62 = 1 - fpc_32 - fpc_42 - fpc_52
+  ) %>% 
+  # None of the scenarios with negative values for fpc_61 or fpc_62 are valid scenarios.
+  filter(fpc_61 >= 0 & fpc_62 >= 0) %>% 
+  # Promote the row names (which are simply integers) to a column to provide scenario identifiers
+  rownames_to_column("scenario.n") %>% 
+  # reorder columns
+  select(scenario.n, tfo, f1, f2, starts_with("fpc"), everything())
 
 View(DF.scenario.factors)
