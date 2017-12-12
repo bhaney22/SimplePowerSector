@@ -80,6 +80,29 @@ DF.scenario.factors <- expand.grid(running_list_for_expand.grid) %>%
   # Promote the row names (which are simply integers) to a column to provide scenario identifiers
   rownames_to_column("scenario.n") %>% 
   # reorder columns
-  select(scenario.n, tfo, f1, f2, starts_with("fpc"), everything())
+  select(scenario.n, tfo, f1, f2, starts_with("fpc"), everything()) 
+
+temp <- DF.scenario.factors %>% 
+  select(scenario.n, f1, f2) %>% 
+  gather(key = variable, value = value, f1, f2) %>% 
+  mutate(
+    rownames = "rn",
+    rowtypes = "Product",
+    coltypes = "Industry",
+    matnames = "f.split",
+    colnames = case_when(
+      .data$variable == "f1" ~ "I1",
+      .data$variable == "f2" ~ "I2",
+      TRUE ~ NA_character_
+    )
+  ) %>% 
+  group_by(scenario.n) %>% 
+  collapse_to_matrices(values = "value", matnames = "matnames", 
+                       rownames = "rownames", colnames = "colnames", 
+                       rowtypes = "rowtypes", coltypes = "coltypes")
+
+# DF.scenario.matrices <- DF.scenario.factors %>% 
+#   full_join(.,
+#             select(., scenario.n, f1, f2)) %>% 
 
 View(DF.scenario.factors)
