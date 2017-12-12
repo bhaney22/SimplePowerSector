@@ -6,6 +6,17 @@ rm(list=ls())
 source("Calc_IO_metrics.R")
 source("Conversions.R")
 
+Res.n		<- 2		# number of extraction industries/products
+Mfg.n		<- 4		# number of intermediate industries/products
+Fin.n		<- 2 		# number of final output industries (should be perfect complements)
+
+Prod.n  <- Res.n + Mfg.n
+Ind.n   <- Res.n + Mfg.n
+
+product.names   <- c(paste0("P",seq(1:Prod.n)))
+industry.names  <- c(paste0("I",seq(1:Ind.n)))
+fin.names       <- c(paste0("F",seq(1:Fin.n)))
+
 curr.scale	<- 10^(-6)
 curr.scale.display <- "Millions USD"
 
@@ -20,33 +31,42 @@ prices.base <- list(PP1 = Convert.prices(55, "MT", curr.scale),
                     PF2 = Convert.prices(0.10,"kWh",curr.scale))
 
 # Values of TFO over which we want to sweep
-tfo_list <- list(100, 200)
+tfo_list <- c(100, 200)
+# Start the list that will be expanded
+running_list_for_expand.grid <- list(tfo = tfo_list)
 
 # Values of F1 over which we want to sweep
-f1_list <- list(0.2, 0.5)
+f1_list <- c(0.2, 0.5)
+# Add to our list
+running_list_for_expand.grid$f1 <- f1_list
 
 # Values of product coefficients over which we want to sweep
-fpc_list <- list(0.25, 0.4)
+fpcs <- c(0.25, 0.4)
+fpc.names <- paste0("fpc_", c("31", "32", "41", "42", "51", "52"))
+fpc_list <- lapply(fpc.names, function(fpcn){fpcs}) %>% set_names(fpc.names)
+# Add to our list
+for(i in 1:length(fpc_list)){
+  running_list_for_expand.grid[[names(fpc_list)[[i]]]] <- fpc_list[[i]]
+}
 
 # Values of gamma over which we want to sweep
-gamma_list <- list(0.5, 1, 2)
-gamma.names <- paste0("gamma.", names(mfg.etas.base))
+gammas <- c(1, 2)
+gamma.names <- paste0("gamma_", names(mfg.etas.base))
+gamma_list <- lapply(gamma.names, function(gn){gammas}) %>% set_names(gamma.names)
+# Add to our list
+for(i in 1:length(gamma_list)){
+  running_list_for_expand.grid[[names(gamma_list)[[i]]]] <- gamma_list[[i]]
+}
 
 # Values of mu over which we want to sweep
-mu_list <- list(0.5, 1, 2)
-mu.names <- paste0("mu.", names(prices.base))
+mus <- c(1, 2)
+mu.names <- paste0("mu_", names(prices.base))
+mu_list <- lapply(mu.names, function(mn){mus}) %>% set_names(mu.names)
+# Add to our list
+for(i in 1:length(mu_list)){
+  running_list_for_expand.grid[[names(mu_list)[[i]]]] <- mu_list[[i]]
+}
 
-
-expand.grid(mu = mu_list, base.price = names(prices.base))
-prices_list <- lapply(prices.base, function(p){
-  return(mu_list)
-})
-
-
-DF.scenario.factors <- expand.grid(TFO = TFO_list, F1 = F1_list, stringsAsFactors = FALSE) %>% 
-  mutate(
-    F1 = as.numeric(F1),
-    F2 = 1-F1
-  )
+DF.scenario.factors <- expand.grid(running_list_for_expand.grid)
 
 View(DF.scenario.factors)
