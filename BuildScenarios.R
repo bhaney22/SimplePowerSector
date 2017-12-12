@@ -21,7 +21,7 @@ curr.scale	<- 10^(-6)
 curr.scale.display <- "Millions USD"
 
 #
-# Some base values
+# Base values
 # 
 mfg.etas.base <- list(I1 = 1, I2 = 1, I3 = 1/3, I4 = 0.4, I5 = 0.4, I6 = 0.5)
 
@@ -30,18 +30,22 @@ prices.base <- list(PP1 = Convert.prices(55, "MT", curr.scale),
                     PF1 = Convert.prices(0.10,"kWh",curr.scale),
                     PF2 = Convert.prices(0.10,"kWh",curr.scale))
 
-# Values of TFO over which we want to sweep
-tfo_list <- c(100, 200)
-# Start the list that will be expanded
-running_list_for_expand.grid <- list(tfo = tfo_list)
-
-# Values of F1 over which we want to sweep
-f1_list <- c(0.2, 0.5)
-# Add to our list
-running_list_for_expand.grid$f1 <- f1_list
-
-# Values of product coefficients over which we want to sweep
+#
+# Sweep values
+# 
+tfos <- c(100, 200)
+f1s <- c(0.2, 0.5)
 fpcs <- c(0.25, 0.4)
+gammas <- c(1, 2)
+mus <- c(1, 2)
+
+# Start the list that will be expanded using TFOs
+running_list_for_expand.grid <- list(tfo = tfos)
+
+# Add f1 values to our list
+running_list_for_expand.grid$f1 <- f1s
+
+# Add fpc values to our list
 fpc.names <- paste0("fpc_", c("31", "32", "41", "42", "51", "52"))
 fpc_list <- lapply(fpc.names, function(fpcn){fpcs}) %>% set_names(fpc.names)
 # Add to our list
@@ -49,8 +53,7 @@ for(i in 1:length(fpc_list)){
   running_list_for_expand.grid[[names(fpc_list)[[i]]]] <- fpc_list[[i]]
 }
 
-# Values of gamma over which we want to sweep
-gammas <- c(1, 2)
+# Add gamma values to our list
 gamma.names <- paste0("gamma_", names(mfg.etas.base))
 gamma_list <- lapply(gamma.names, function(gn){gammas}) %>% set_names(gamma.names)
 # Add to our list
@@ -58,8 +61,7 @@ for(i in 1:length(gamma_list)){
   running_list_for_expand.grid[[names(gamma_list)[[i]]]] <- gamma_list[[i]]
 }
 
-# Values of mu over which we want to sweep
-mus <- c(1, 2)
+# Add mu values to our list
 mu.names <- paste0("mu_", names(prices.base))
 mu_list <- lapply(mu.names, function(mn){mus}) %>% set_names(mu.names)
 # Add to our list
