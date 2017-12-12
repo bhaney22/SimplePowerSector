@@ -296,7 +296,7 @@ DF.eurostat <- data.frame(DF.scenarios) %>%
   mutate( Y.colsum = elementproduct_byname(TFO, f.split),
           Y = matrixproduct_byname(f.product.coeffs,hatize_byname(Y.colsum)),
           y = rowsums_byname(Y),
-          Z =  elementproduct_byname(Mfg.etas.mat,A.mat),
+          Z =  elementquotient_byname(A.mat,Mfg.etas.mat),
           D = transpose_byname(identize_byname(Z)),
           A = matrixproduct_byname(Z,D),
           q = matrixproduct_byname(invert_byname(Iminus_byname(A)),y),
