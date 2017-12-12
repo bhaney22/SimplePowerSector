@@ -43,29 +43,31 @@ mus <- c(1, 2)
 # First item is TFOs
 running_list_for_expand.grid <- list(tfo = tfos)
 
-# Add f1 values to our list
+# Next item is f1s
 running_list_for_expand.grid$f1 <- f1s
 
-# Add fpc values to our list
+# Work on fpcs
 fpc.names <- paste0("fpc_", c("31", "32", "41", "42", "51", "52"))
 fpc_list <- lapply(fpc.names, function(fpcn){fpcs}) %>% set_names(fpc.names)
-for(i in 1:length(fpc_list)){
-  running_list_for_expand.grid[[names(fpc_list)[[i]]]] <- fpc_list[[i]]
-}
 
-# Add gamma values to our list
+# gammas
 gamma.names <- paste0("gamma_", names(mfg.etas.base))
 gamma_list <- lapply(gamma.names, function(gn){gammas}) %>% set_names(gamma.names)
-for(i in 1:length(gamma_list)){
-  running_list_for_expand.grid[[names(gamma_list)[[i]]]] <- gamma_list[[i]]
-}
 
-# Add mu values to our list
+# mus
 mu.names <- paste0("mu_", names(prices.base))
 mu_list <- lapply(mu.names, function(mn){mus}) %>% set_names(mu.names)
-for(i in 1:length(mu_list)){
-  running_list_for_expand.grid[[names(mu_list)[[i]]]] <- mu_list[[i]]
+
+# Add fpcs, gammas, and mus to our list.
+for (l in list(fpc_list, gamma_list, mu_list)){
+  # Each of these lists contains sub-vectors, 
+  # each of which needs to be included on its own
+  # in the running_list.  
+  for (i in 1:length(l)){
+    running_list_for_expand.grid[[names(l)[[i]]]] <- l[[i]]
+  }
 }
+
 
 DF.scenario.factors <- expand.grid(running_list_for_expand.grid)
 
