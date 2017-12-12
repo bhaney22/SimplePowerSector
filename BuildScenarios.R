@@ -39,7 +39,8 @@ fpcs <- c(0.25, 0.4)
 gammas <- c(1, 2)
 mus <- c(1, 2)
 
-# Start the list that will be expanded using TFOs
+# Start the list that will be expanded into all scenarios.
+# First item is TFOs
 running_list_for_expand.grid <- list(tfo = tfos)
 
 # Add f1 values to our list
