@@ -23,16 +23,35 @@ curr.scale.display <- "Millions USD"
 #
 # Base values for manufacturing etas and prices
 # 
-# mfg.etas.base_list <- list(I1 = 1, I2 = 1, I3 = 1/3, I4 = 0.4, I5 = 0.4, I6 = 0.5)
-# mfg.etas.base <- as.data.frame(mfg.etas.base) %>% as.matrix %>% 
-mfg.etas.base <- data.frame(I1 = 1, I2 = 1, I3 = 1/3, I4 = 0.4, I5 = 0.4, I6 = 0.5) %>% as.matrix %>% 
+mfg.etas.base <- data.frame(I1 = 1, I2 = 1, I3 = 1/3, I4 = 0.4, I5 = 0.4, I6 = 0.5) %>% as.matrix %>%
   setrownames_byname("P1") %>% 
   setrowtype("Products") %>% setcoltype("Industries")
 
-prices.base <- list(PP1 = Convert.prices(55, "MT", curr.scale),
-                    PP2 = Convert.prices(3,"MMBTU",curr.scale),
-                    PF1 = Convert.prices(0.10,"kWh",curr.scale),
-                    PF2 = Convert.prices(0.10,"kWh",curr.scale))
+product.prices.base <- list(PP1 = Convert.prices(55, "MT", curr.scale), 
+                            PP2 = Convert.prices(3,"MMBTU",curr.scale))
+final.prices.base <- list(PF1 = Convert.prices(0.10,"kWh",curr.scale),
+                          PF2 = Convert.prices(0.10,"kWh",curr.scale))
+
+
+prices.base <- sum_byname(
+  # Sub-matrix of prices for P1 and P2
+  matrix(rep(product.prices.base, Ind.n),
+         nrow = 2, ncol = Ind.n) %>% 
+    setrownames_byname(paste0("P", 1:2)) %>% setcolnames_byname(industry.names), 
+  # Sub-matrix of prices for F1 and F2
+  matrix(rep(final.prices.base %>% unlist, Fin.n), 
+         byrow = TRUE, nrow = Prod.n - Fin.n, ncol = Fin.n) %>% 
+    setrownames_byname(paste0("P", (Fin.n+1):Prod.n)) %>% 
+    setcolnames_byname(c("F1", "F2"))
+) %>% 
+  sort_rows_cols(margin = 2, colorder = c(industry.names, fin.names))
+
+product.prices.base <- matrix(c(Convert.prices(55, "MT", curr.scale), 
+                                Convert.prices(3,"MMBTU",curr.scale)),
+                              nrow = 2, ncol = 1) %>% 
+  setrownames_byname(c("P1", "P2")) %>% setcolnames_byname("I1") %>% 
+  setrowtype("Products") %>% setcoltype("Industries")
+
 
 #
 # Sweep values
@@ -126,7 +145,7 @@ f.product.coeffs_DF <- list(
 
 running_list_for_expand.grid$f.product.coeffs <- f.product.coeffs_DF$f.product.coeffs
 
-# Work on gammas
+# Work on manufacturing efficiencies
 # Put this into a function later
 mfg.etas_DF <- colnames(mfg.etas.base) %>% 
   lapply(., function(gn){gammas}) %>% 
@@ -152,6 +171,7 @@ mfg.etas_DF <- colnames(mfg.etas.base) %>%
   collapse_to_matrices(matnames = "matnames", values = "gammas", 
                        rownames = "rownames", colnames = "colnames", 
                        rowtypes = "rowtypes", coltypes = "coltypes") %>% 
+  # From the gamma matrices, create the mfg.eta matrices
   mutate(
     etas_temp = elementproduct_byname(gammas, mfg.etas.base),
     gammas = NULL,
@@ -168,9 +188,9 @@ mfg.etas_DF <- colnames(mfg.etas.base) %>%
 
 running_list_for_expand.grid$mfg.etas <- mfg.etas_DF$etas
 
-# Work on mus.
+# Work on the prices matrix
 # Move into a function later.
-mus_DF <- paste0("mu_", names(prices.base)) %>% 
+Prices_DF <- paste0(colnames(prices.base)) %>% 
   lapply(., function(mn){mus}) %>% 
   set_names(paste0("mu_", names(prices.base))) %>% 
   # At this point, we have a named list of multipliers on prices.
@@ -193,7 +213,7 @@ mus_DF <- paste0("mu_", names(prices.base)) %>%
   # Create the mu matrices
   collapse_to_matrices(matnames = "matnames", values = "mus", 
                        rownames = "rownames", colnames = "colnames", 
-                       rowtypes = "rowtypes", coltypes = "coltypes") %>% 
+                       rowtypes = "rowtypes", coltypes = "coltypes") %>% View
   mutate(scenario = NULL)
 
 running_list_for_expand.grid$mus <- mus_DF$mus
