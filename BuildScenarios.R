@@ -23,7 +23,11 @@ curr.scale.display <- "Millions USD"
 #
 # Base values for manufacturing etas and prices
 # 
-mfg.etas.base <- list(I1 = 1, I2 = 1, I3 = 1/3, I4 = 0.4, I5 = 0.4, I6 = 0.5)
+# mfg.etas.base_list <- list(I1 = 1, I2 = 1, I3 = 1/3, I4 = 0.4, I5 = 0.4, I6 = 0.5)
+# mfg.etas.base <- as.data.frame(mfg.etas.base) %>% as.matrix %>% 
+mfg.etas.base <- data.frame(I1 = 1, I2 = 1, I3 = 1/3, I4 = 0.4, I5 = 0.4, I6 = 0.5) %>% as.matrix %>% 
+  setrownames_byname("P1") %>% 
+  setrowtype("Products") %>% setcoltype("Industries")
 
 prices.base <- list(PP1 = Convert.prices(55, "MT", curr.scale),
                     PP2 = Convert.prices(3,"MMBTU",curr.scale),
@@ -124,9 +128,9 @@ running_list_for_expand.grid$f.product.coeffs <- f.product.coeffs_DF$f.product.c
 
 # Work on gammas
 # Put this into a function later
-gammas_DF <- paste0("gamma_", names(mfg.etas.base)) %>% 
+mfg.etas_DF <- colnames(mfg.etas.base) %>% 
   lapply(., function(gn){gammas}) %>% 
-  set_names(paste0("gamma_", names(mfg.etas.base))) %>% 
+  set_names(colnames(mfg.etas.base)) %>% 
   # At this point, we have a named list of multipliers on manufacturing eta values.
   # Convert to a data frame containing all combinations.
   expand.grid() %>% 
@@ -139,8 +143,8 @@ gammas_DF <- paste0("gamma_", names(mfg.etas.base)) %>%
   # Add metadata in preparation for creating matrices
   mutate(
     matnames = "gammas",
-    rownames = "row", 
-    rowtypes = "row", 
+    rownames = "P1", 
+    rowtypes = "Products", 
     coltypes = "Industries"
   ) %>% 
   group_by(scenario) %>% 
@@ -148,9 +152,21 @@ gammas_DF <- paste0("gamma_", names(mfg.etas.base)) %>%
   collapse_to_matrices(matnames = "matnames", values = "gammas", 
                        rownames = "rownames", colnames = "colnames", 
                        rowtypes = "rowtypes", coltypes = "coltypes") %>% 
-  mutate(scenario = NULL)
+  mutate(
+    etas_temp = elementproduct_byname(gammas, mfg.etas.base),
+    gammas = NULL,
+    etas = sum_byname(etas_temp, etas_temp %>% setrownames_byname("P2")),
+    etas = sum_byname(etas, etas_temp %>% setrownames_byname("P3")),
+    etas = sum_byname(etas, etas_temp %>% setrownames_byname("P4")),
+    etas = sum_byname(etas, etas_temp %>% setrownames_byname("P5")),
+    etas = sum_byname(etas, etas_temp %>% setrownames_byname("P6"))
+  ) %>%
+  mutate(
+    scenario = NULL, 
+    etas_temp = NULL
+  )
 
-running_list_for_expand.grid$gammas <- gammas_DF$gammas
+running_list_for_expand.grid$mfg.etas <- mfg.etas_DF$etas
 
 # Work on mus.
 # Move into a function later.
