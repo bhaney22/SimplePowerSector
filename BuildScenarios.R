@@ -157,7 +157,7 @@ running_list_for_expand.grid$gammas <- gammas_DF$gammas
 mus_DF <- paste0("mu_", names(prices.base)) %>% 
   lapply(., function(mn){mus}) %>% 
   set_names(paste0("mu_", names(prices.base))) %>% 
-  # At this point, we have a named list of multiplierrs on ************ values.
+  # At this point, we have a named list of multipliers on prices.
   # Convert to a data frame containing all combinations.
   expand.grid() %>% 
   # Keep track of scenarios: one per row.
