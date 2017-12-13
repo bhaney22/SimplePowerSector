@@ -108,7 +108,7 @@ f.product.coeffs_DF <- list(
       TRUE ~ NA_character_
     ),
     rowtypes = "Products",
-    coltypes = "Sectors", 
+    coltypes = "Industries", 
     matnames = "f.product.coeffs"
   ) %>% 
   # Make one matrix for each scenario (each row of the data frame)
