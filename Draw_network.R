@@ -21,8 +21,9 @@ library(statnet)
 library(igraph)
 library(qgraph)
 
-image.dir	<- c("C:/Users/brh22/Dropbox/Apps/ShareLaTeX/Sabbatical Technical Notes/Images/")
+image.dir	<- c("C:/Users/brh22/Dropbox/Apps/ShareLaTeX/Sabbatical Technical Note/Images/")
 source("Calc_IO_metrics.R")
+source("SPS_test_grid.R")
 
 # 
 # Set indexes to point to different nodes.
@@ -51,14 +52,13 @@ Fin.prices.units	<- c("kWh","kWh")
 
 curr.scale.display <- "Millions USD"
 
-
 ##############################################################################################################
 #
 # Create Physical and Monetary IO Matrices from DF.results, row.num
 #
 ##############################################################################################################
 #### for(row.num in 1:nrow(DF.results)) { 
-for(row.num in 1:2) {
+for(row.num in 1:10) {
 
 Mfg.etas = DF.results$Mfg.etas.mat[[row.num]][1,]
 Res.prices	= DF.results$prices.mat[[row.num]][1:2,1]	
