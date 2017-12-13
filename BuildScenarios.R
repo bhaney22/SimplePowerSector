@@ -49,7 +49,7 @@ f.split_list <- lapply(f1s, function(f1){
   matrix(c(f1, 1-f1),
          nrow = 1, ncol = 2, byrow = TRUE) %>% 
     setrownames_byname("row") %>% setcolnames_byname(c("F1", "F2")) %>% 
-    setrowtype("row") %>% setcoltype("Sectors")
+    setrowtype("row") %>% setcoltype("Industries")
 })
 
 running_list_for_expand.grid$f.split <- f.split_list
