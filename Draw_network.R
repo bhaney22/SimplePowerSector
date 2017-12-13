@@ -16,21 +16,17 @@ library(tibble)   # For the rownames_to_column function.  (Not sure why this did
 library(lazyeval) # For the interp function.  (Not sure why this didn't come in with matsindf.)
 library(matsindf) # For collapse_to_matrices and expand_to_tidy functions
 library(ggplot2)  # For awesome plotting functions
+library(plotly)
 library(statnet)
 library(igraph)
 library(qgraph)
 
+image.dir	<- c("C:/Users/brh22/Dropbox/Apps/ShareLaTeX/Sabbatical Technical Notes/Images/")
 source("Calc_IO_metrics.R")
-#
-# BRH TODO: Get the prices, etas, and V-A from DF.results
-#
-Mfg.etas <- c(1, 1, 1/3, 0.4, 0.4, 0.5)
-Res.prices	= c(55,3)				#Resource USD per unit
-Fin.prices	= c(0.10,0.10)		#Final output USD per unit
+
 # 
 # Set indexes to point to different nodes.
 #
-nodes.n	<- Res.n + Mfg.n + Fin.n
 Mfg.first	<- Res.n + 1		# node number of first Mfg
 Fin.first	<- Res.n + Mfg.n + 1	# node number of first Fin
 
@@ -55,41 +51,35 @@ Fin.prices.units	<- c("kWh","kWh")
 
 curr.scale.display <- "Millions USD"
 
-Mfg.names	<- rep("",Mfg.n)
-for(i in 1:Mfg.n){ Mfg.names[i] <- paste("I",i,sep = "") }
-Mfg.names.csv <- Mfg.names[i]
-nodes.names <- c(Res.names,Mfg.names,Fin.names)
-nodes.names
 
-Res.names.phys	<- rep("",Res.n)
-for(i in 1:Res.n){
-  Res.names.phys[i] <- 
-    paste(Res.names[i],"(",Res.units[i],")",sep = "")}
-Res.names.phys
+##############################################################################################################
+#
+# Create Physical and Monetary IO Matrices from DF.results, row.num
+#
+##############################################################################################################
+#### for(row.num in 1:nrow(DF.results)) { 
+for(row.num in 1:2) {
 
-Fin.names.phys	<- rep("",Fin.n)
-for(i in 1:Fin.n){
-  Fin.names.phys[i] <- 
-    paste(Fin.names[i],"(",Fin.units[i],")",sep = "")}
-Fin.names.phys
+Mfg.etas = DF.results$Mfg.etas.mat[[row.num]][1,]
+Res.prices	= DF.results$prices.mat[[row.num]][1:2,1]	
+Fin.prices  = DF.results$Prices.mat[[row.num]][Mfg.first,Fin.nodes]
+
 
 Mfg.names	<- rep("",Mfg.n)
 for(i in 1:Mfg.n){ Mfg.names[i] <- paste("I",i,sep = "") }
 Mfg.names.csv <- Mfg.names[i]
 nodes.names <- c(Res.names,Mfg.names,Fin.names)
-nodes.names
 
 Res.names.phys	<- rep("",Res.n)
 for(i in 1:Res.n){
   Res.names.phys[i] <- 
     paste(Res.names[i],"(",Res.units[i],")",sep = "")}
-Res.names.phys
 
 Fin.names.phys	<- rep("",Fin.n)
 for(i in 1:Fin.n){
   Fin.names.phys[i] <- 
     paste(Fin.names[i],"(",Fin.units[i],")",sep = "")}
-Fin.names.phys
+
 
 Mfg.names.phys	<- rep("",Mfg.n)
 for(i in 1:Mfg.n){
@@ -125,21 +115,24 @@ nodes.names.phys <- c(Res.names.phys,Mfg.names.phys,Fin.names.phys)
 nodes.names.phys.legend <- c(Res.units,Mfg.names.phys.legend,Fin.units)
 nodes.names.curr	<- c(Res.names.curr,Mfg.names.phys,Fin.names.curr)
 
-#
-# Create Physical and Monetary IO Matrices
-#
-Flows.phys			<- matrix(0,nrow=nodes.n,ncol=nodes.n) 
-rownames(Flows.phys)	<- c(product.names,fin.names)
-colnames(Flows.phys)	<- c(industry.names,fin.names)
-Flows.phys <- sum_byname(Flows.phys,DF.results$IO.phys[[5]]) %>% 
-  sort_rows_cols(roworder=(c(product.names,fin.names)),colorder=(c(industry.names,fin.names)))
 
-Flows.curr		<- matrix(0,nrow=nodes.n,ncol=nodes.n)
-rownames(Flows.curr)	<- c(product.names,fin.names)
-colnames(Flows.curr)	<- c(industry.names,fin.names)
-Flows.curr <- sum_byname(Flows.curr,DF.results$IO.curr[[5]]) %>% 
-  sort_rows_cols(roworder=(c(product.names,fin.names)),colorder=(c(industry.names,fin.names)))
+Flows.phys			<- matrix(0,nrow=nodes.n,ncol=nodes.n)  %>%
+  setrownames_byname(c(product.names,fin.names)) %>%
+  setrowtype("Products") %>%
+  setcolnames_byname(c(industry.names,fin.names)) %>%
+  setcoltype("Industries") %>%
+  sum_byname(.,DF.results$IO.phys[[row.num]]) %>% 
+  sort_rows_cols(roworder=(c(product.names,fin.names)),
+                 colorder=(c(industry.names,fin.names)))
 
+Flows.curr		<- matrix(0,nrow=nodes.n,ncol=nodes.n) %>%
+  setrownames_byname(c(product.names,fin.names)) %>%
+  setrowtype("Products") %>%
+  setcolnames_byname(c(industry.names,fin.names)) %>%
+  setcoltype("Industries") %>%
+  sum_byname(.,DF.results$IO.curr[[row.num]]) %>% 
+  sort_rows_cols(roworder=(c(product.names,fin.names)),
+                 colorder=(c(industry.names,fin.names)))
 
 #
 # Compute value-added for each industry
@@ -165,7 +158,7 @@ create.phys.run.name	<- function(etas) {
 }
 
 create.curr.run.name	<- function(vas) {
-  vas.string		<- paste(sprintf("%3.2f",vas),collapse=",")
+  vas.string		<- paste(sprintf("%3.1f",vas),collapse=",")
   curr.run.name	<- paste(paste("     Currency &(",vas.string,")",sep=""),collapse="")
 }
 phys.run.name	<- create.phys.run.name(Mfg.etas)
@@ -174,35 +167,31 @@ curr.run.name	<- create.curr.run.name(value.added.per.dollar.in)
 #########################################################################################################
 # Begin Plots
 #########################################################################################################
+num.edges <- ecount(graph_from_adjacency_matrix(Flows.phys,weighted=T))
+edge.label.position.vals <- c(rep(.5,Mfg.n),rep(.7,(num.edges-Mfg.n)))
 
-
-
-##################################################################################
-# Function: create.network.pdf
-# Draw the network: help pages are here
-# http://igraph.org/r/doc/graph_from_adjacency_matrix.html 
-##################################################################################
 groups 	<- list(	"Input Units" =c(Res.nodes),
-                 "Plant Efficiencies"=c(Mfg.nodes),
+                 "MW produced per MW"=c(Mfg.nodes),
                  "Output Units"=c(Fin.nodes))
 groups.curr	<- list(	"Input Prices"=c(Res.nodes),
-                     "Value-Added"=c(Mfg.nodes),
+                     "Value-Added per $"=c(Mfg.nodes),
                      "Output Prices"=c(Fin.nodes))
-# 
+
 shapes <- c(rep("ellipse",Res.n),rep("rectangle",Mfg.n),rep("ellipse",Fin.n))
+
 L <- matrix(c(
   0,2.5, 0,.5,
   1,3, 1,2, 1,1, 1,0,
   2,2.5, 2,.5),
   ncol=2,byrow=TRUE)
-# 
-# options(width=200)
-# pdf(file=paste(image.dir,"Flows_phys_",run.num,".pdf",sep=""))
+############################################################################################
+# Graph Physical Flows network
+############################################################################################# 
+pdf(file=paste0(image.dir,"Flows_phys_",row.num,".pdf"))
 qgraph(Flows.phys,  
        edge.labels=T,
        edge.label.cex=1.25,edge.color="black",fade=F,
-       # BRH Commented out during csv file creation
-       # not working edge.label.position=c(rep(.5,Res.n),rep(.7,Mfg.n),rep(.7,Fin.n)),
+       edge.label.position=edge.label.position.vals,
        layout=L,
        groups=groups,
        borders=F,
@@ -210,24 +199,36 @@ qgraph(Flows.phys,
        nodeNames=nodes.names.phys.legend,
        shape=shapes,
        palette="colorblind",
-       title=paste("(Flows in MW)",sep=""))
-# dev.off()
-# 
-# options(width=200)
-# pdf(file=paste(image.dir,"Flows_curr_",run.num,".pdf",sep=""))
+       title=paste0("Total Final Output ",DF.results$TFO[[row.num]]," (MW)     ",
+       "PRR =",round(DF.results$PRR.phys[[row.num]],2),
+       " (phys), ",round(DF.results$PRR.curr[[row.num]],2), " (curr)", 
+       "\n a=",round(DF.results$alpha.phys[[row.num]],2),
+       "\n F=",round(DF.results$F.phys[[row.num]],2)) )
+dev.off()
 
-qgraph(Flows.curr,edge.labels=T,edge.label.cex=1.25,edge.color="black",fade=F,
-# BRH Commented out during csv file creation
-edge.label.position=c(rep(.5,Mfg.n),rep(.7,Mfg.n),rep(.7,Mfg.n)),
-layout=L,
-groups=groups.curr,
-borders=F,
-labels=nodes.names,
-nodeNames=nodes.names.curr.legend,
-shape=shapes,
-palette="colorblind",
-title=paste("TST=",round(DF.results$TST.curr[[5]],2)," (",curr.scale.display,
-            ") alpha=",round(DF.results$alpha.curr[[5]],2),
-            " F=",round(DF.results$F.curr[[5]],2),"\n",
-            "PRR (phys) =",round(DF.results$PRR.phys[[5]],2),sep="") )
+############################################################################################
+# Graph Currency Flows network
+############################################################################################
+pdf(file=paste0(image.dir,"Flows_curr_",row.num,".pdf"))
 
+qgraph(Flows.curr,
+        edge.labels=T,
+        edge.label.cex=1.25,edge.color="black",fade=F,
+        edge.label.position=edge.label.position.vals,
+        layout=L,
+        groups=groups.curr,
+        borders=F,
+        labels=nodes.names,
+        nodeNames=nodes.names.curr.legend,
+        shape=shapes,
+        palette="colorblind",
+        title=paste0("GDP $",round(DF.results$GDP.curr[[row.num]],2),
+                     " (millions)     Power Return Ratio =",round(DF.results$PRR.curr[[row.num]],2),
+                    " (phys), ",round(DF.results$PRR.curr[[row.num]],2), " (curr)", 
+                    "\n a=",round(DF.results$alpha.curr[[row.num]],2),
+                    "\n F=",round(DF.results$F.curr[[row.num]],2)) )
+dev.off()       
+
+
+row.num <- row.num + 1
+}
