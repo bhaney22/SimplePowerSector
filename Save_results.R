@@ -212,3 +212,11 @@ row.num <- row.num + 1
 write(RESULTS,"")
 write(RESULTS,"Results.csv")
 Results <- read_csv("Results.csv", col_types = cols(X33 = col_skip()))
+
+ggplot(data=Results,aes(x=Fin.1.Mkt.share,y=F.phys)) +
+  geom_point()
+
+
+
+
+
