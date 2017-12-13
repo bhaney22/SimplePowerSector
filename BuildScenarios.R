@@ -21,7 +21,7 @@ curr.scale	<- 10^(-6)
 curr.scale.display <- "Millions USD"
 
 #
-# Base values
+# Base values for manufacturing etas and prices
 # 
 mfg.etas.base <- list(I1 = 1, I2 = 1, I3 = 1/3, I4 = 0.4, I5 = 0.4, I6 = 0.5)
 
@@ -40,7 +40,7 @@ gammas <- c(1, 2)
 mus <- c(1, 2)
 
 
-# Start the list that will be expanded into all scenarios.
+# Start the list that will be expand.grid'ed into all scenarios.
 # First item is TFOs
 running_list_for_expand.grid <- list(tfo = tfos)
 
@@ -51,9 +51,11 @@ f.split_list <- lapply(f1s, function(f1){
     setrownames_byname("row") %>% setcolnames_byname(c("F1", "F2")) %>% 
     setrowtype("row") %>% setcoltype("Sectors")
 })
+
 running_list_for_expand.grid$f.split <- f.split_list
 
 # Work on f.product.coeffs
+# Put this into a function later!
 f.product.coeffs_DF <- list(
   fpc31 = fpcs, fpc32 = fpcs,
   fpc41 = fpcs, fpc42 = fpcs,
@@ -107,65 +109,56 @@ f.product.coeffs_DF <- list(
 running_list_for_expand.grid$f.product.coeffs <- f.product.coeffs_DF$f.product.coeffs
 
 # Work on gammas
+# Put this into a function later
+gammas_DF <- paste0("gamma_", names(mfg.etas.base)) %>% 
+  lapply(., function(gn){gammas}) %>% 
+  set_names(paste0("gamma_", names(mfg.etas.base))) %>% 
+  expand.grid() %>% 
+  rownames_to_column(var = "scenario") %>% 
+  mutate(scenario = as.numeric(scenario)) %>% 
+  gather(key = "colnames", value = "gammas", -scenario) %>% 
+  arrange(scenario) %>% 
+  mutate(
+    matnames = "gammas",
+    rownames = "row", 
+    rowtypes = "row", 
+    coltypes = "Industries"
+  ) %>% 
+  group_by(scenario) %>% 
+  collapse_to_matrices(matnames = "matnames", values = "gammas", 
+                       rownames = "rownames", colnames = "colnames", 
+                       rowtypes = "rowtypes", coltypes = "coltypes") %>% 
+  mutate(scenario = NULL)
 
+running_list_for_expand.grid$gammas <- gammas_DF$gammas
 
+# Work on mus.
+# Move into a function later.
+mus_DF <- paste0("mu_", names(prices.base)) %>% 
+  lapply(., function(mn){mus}) %>% 
+  set_names(paste0("mu_", names(prices.base))) %>% 
+  expand.grid() %>% 
+  rownames_to_column(var = "scenario") %>% 
+  mutate(scenario = as.numeric(scenario)) %>% 
+  gather(key = "colnames", value = "mus", -scenario) %>% 
+  arrange(scenario) %>% 
+  mutate(
+    matnames = "mus",
+    rownames = "row", 
+    rowtypes = "row", 
+    coltypes = "Products"
+  ) %>% 
+  group_by(scenario) %>% 
+  collapse_to_matrices(matnames = "matnames", values = "mus", 
+                       rownames = "rownames", colnames = "colnames", 
+                       rowtypes = "rowtypes", coltypes = "coltypes") %>% 
+  mutate(scenario = NULL)
 
+running_list_for_expand.grid$mus <- mus_DF$mus
 
-
-
-# gammas
-# gamma.names <- paste0("gamma_", names(mfg.etas.base))
-# gamma_list <- lapply(gamma.names, function(gn){gammas}) %>% set_names(gamma.names)
-
-# mus
-# mu.names <- paste0("mu_", names(prices.base))
-# mu_list <- lapply(mu.names, function(mn){mus}) %>% set_names(mu.names)
-
-# Add fpcs, gammas, and mus to our list.
-# for (l in list(fpc_list, gamma_list, mu_list)){
-#   # Each of these lists contains sub-vectors, 
-#   # each of which needs to be included on its own
-#   # in the running_list.  
-#   for (i in 1:length(l)){
-#     running_list_for_expand.grid[[names(l)[[i]]]] <- l[[i]]
-#   }
-# }
-
+# 
+# Create the data frame of scenarios
+#
 DF.scenario.factors <- expand.grid(running_list_for_expand.grid) #%>%
-# mutate(
-#   # Calculate auxiliary varlues
-#   f2 = 1 - f1,
-#   fpc_61 = 1 - fpc_31 - fpc_41 - fpc_51, 
-#   fpc_62 = 1 - fpc_32 - fpc_42 - fpc_52
-# ) %>% 
-# # None of the scenarios with negative values for fpc_61 or fpc_62 are valid scenarios.
-# filter(fpc_61 >= 0 & fpc_62 >= 0) %>% 
-# # Promote the row names (which are simply integers) to a column to provide scenario identifiers
-# rownames_to_column("scenario.n") %>% 
-# # reorder columns
-# select(scenario.n, tfo, f1, f2, starts_with("fpc"), everything()) 
-
-# temp <- DF.scenario.factors %>% 
-#   select(scenario.n, f1, f2) %>% 
-#   gather(key = variable, value = value, f1, f2) %>% 
-#   mutate(
-#     rownames = "rn",
-#     rowtypes = "Product",
-#     coltypes = "Industry",
-#     matnames = "f.split",
-#     colnames = case_when(
-#       .data$variable == "f1" ~ "I1",
-#       .data$variable == "f2" ~ "I2",
-#       TRUE ~ NA_character_
-#     )
-#   ) %>% 
-#   group_by(scenario.n) %>% 
-#   collapse_to_matrices(values = "value", matnames = "matnames", 
-#                        rownames = "rownames", colnames = "colnames", 
-#                        rowtypes = "rowtypes", coltypes = "coltypes")
-
-# DF.scenario.matrices <- DF.scenario.factors %>% 
-#   full_join(.,
-#             select(., scenario.n, f1, f2)) %>% 
 
 View(DF.scenario.factors)
