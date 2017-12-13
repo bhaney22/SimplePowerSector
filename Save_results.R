@@ -23,6 +23,8 @@ library(qgraph)
 
 image.dir	<- c("C:/Users/brh22/Dropbox/Apps/ShareLaTeX/Sabbatical Technical Notes/Images/")
 source("Calc_IO_metrics.R")
+comma		<- c(",")
+newline	<- c(" \n")
 
 # 
 # Set indexes to point to different nodes.
@@ -54,19 +56,50 @@ curr.scale.display <- "Millions USD"
 
 ##############################################################################################################
 #
-# Create Physical and Monetary IO Matrices from DF.results, row.num
+# Create .csv file of results
 #
 ##############################################################################################################
-#### for(row.num in 1:nrow(DF.results)) { 
-for(row.num in 1:2) {
 
+RESULTS = paste("Row",
+                "Eta.1",
+                "Eta.2",
+                "Eta.3",
+                "Eta.4",
+                "VA.1",
+                "VA.2",
+                "VA.3",
+                "VA.4",
+                "Res.1.price",
+                "Res.2.price",
+                "Fin.1.price",
+                "Fin.2.price",
+                "Fin.1.Mkt.share",
+                "Fin.1.I.1.share",
+                "Fin.1.I.2.share",
+                "Fin.1.I.3.share",
+                "Fin.1.I.4.share",
+                "Fin.2.I.1.share",
+                "Fin.2.I.2.share",
+                "Fin.2.I.3.share",
+                "Fin.2.I.4.share",
+                "TFO","TST.phys","PRR.phys",
+                "GDP.curr","TST.curr","PRR.curr",
+                "alpha.phys","F.phys",
+                "alpha.curr","F.curr",newline,
+                sep=",")
+
+for(row.num in 1:nrow(DF.results)) { 
+
+#############################################################################################################
+## Get factors
+#############################################################################################################
 Mfg.etas = DF.results$Mfg.etas.mat[[row.num]][1,]
-Res.prices	= DF.results$prices.mat[[row.num]][1:2,1]	
+Res.prices	= DF.results$Prices.mat[[row.num]][1:2,1]	
 Fin.prices  = DF.results$Prices.mat[[row.num]][Mfg.first,Fin.nodes]
 
 
 Mfg.names	<- rep("",Mfg.n)
-for(i in 1:Mfg.n){ Mfg.names[i] <- paste("I",i,sep = "") }
+  for(i in 1:Mfg.n) Mfg.names[i] <- paste("I",i,sep = "") 
 Mfg.names.csv <- Mfg.names[i]
 nodes.names <- c(Res.names,Mfg.names,Fin.names)
 
@@ -137,98 +170,53 @@ Flows.curr		<- matrix(0,nrow=nodes.n,ncol=nodes.n) %>%
 #
 # Compute value-added for each industry
 #
-value.added.per.dollar.in	<-rep(0,Mfg.n)
+va	<-rep(0,Mfg.n)
 for (i in 1:Mfg.n) {
-  value.added.per.dollar.in[i] <- round(sum(Flows.curr[Mfg.nodes[i],Fin.nodes])/sum(Flows.curr[,Mfg.nodes[i]]),2)
+  va[i] <- round(sum(Flows.curr[Mfg.nodes[i],Fin.nodes])/sum(Flows.curr[,Mfg.nodes[i]]),2)
 }
-
-Mfg.names.curr.legend	<- rep("",Mfg.n)
-for(i in 1:Mfg.n){
-  Mfg.names.curr.legend[i] <- 
-    paste(" ",round(value.added.per.dollar.in[i],2),sep = "")}
-nodes.names.curr.legend	<- c(Res.names.curr.legend,Mfg.names.curr.legend,Fin.names.curr.legend)
-
-
-# 
-# Create run.names for .tex formated line of selected IO_metrics results
-#
-create.phys.run.name	<- function(etas) {
-  etas.string		<- paste(sprintf("%3.2f",etas),collapse=",")
-  paste(paste("    Physical & (", etas.string,")",sep=""),collapse="")
-}
-
-create.curr.run.name	<- function(vas) {
-  vas.string		<- paste(sprintf("%3.1f",vas),collapse=",")
-  curr.run.name	<- paste(paste("     Currency &(",vas.string,")",sep=""),collapse="")
-}
-phys.run.name	<- create.phys.run.name(Mfg.etas)
-curr.run.name	<- create.curr.run.name(value.added.per.dollar.in)
 
 #########################################################################################################
-# Begin Plots
+# Begin .csv file
 #########################################################################################################
-num.edges <- ecount(graph_from_adjacency_matrix(Flows.phys,weighted=T))
-edge.label.position.vals <- c(rep(.5,Mfg.n),rep(.7,(num.edges-Mfg.n)))
 
-groups 	<- list(	"Input Units" =c(Res.nodes),
-                 "MW produced per MW"=c(Mfg.nodes),
-                 "Output Units"=c(Fin.nodes))
-groups.curr	<- list(	"Input Prices"=c(Res.nodes),
-                     "Value-Added per $"=c(Mfg.nodes),
-                     "Output Prices"=c(Fin.nodes))
+row.results <- paste(row.num,
+Mfg.etas[3],Mfg.etas[4],Mfg.etas[5],Mfg.etas[6],va[1],va[2],va[3],va[4],
+Res.prices[1],Res.prices[2],
+Fin.prices[1],Fin.prices[2],
+DF.results$f.split[[row.num]][1],
+DF.results$f.product.coeffs[[row.num]][3,1],
+DF.results$f.product.coeffs[[row.num]][4,1],
+DF.results$f.product.coeffs[[row.num]][5,1],
+DF.results$f.product.coeffs[[row.num]][6,1],
+DF.results$f.product.coeffs[[row.num]][3,2],
+DF.results$f.product.coeffs[[row.num]][4,2],
+DF.results$f.product.coeffs[[row.num]][5,2],
+DF.results$f.product.coeffs[[row.num]][6,2],
+DF.results$TFO[[row.num]],
+DF.results$TST.phys[[row.num]],
+DF.results$PRR.phys[[row.num]],
+DF.results$GDP.curr[[row.num]],
+DF.results$TST.curr[[row.num]],
+DF.results$PRR.curr[[row.num]], 
+DF.results$alpha.phys[[row.num]],
+DF.results$F.phys[[row.num]],
+DF.results$alpha.curr[[row.num]],
+DF.results$F.curr[[row.num]],
+newline,
+sep=",")
 
-shapes <- c(rep("ellipse",Res.n),rep("rectangle",Mfg.n),rep("ellipse",Fin.n))
-
-L <- matrix(c(
-  0,2.5, 0,.5,
-  1,3, 1,2, 1,1, 1,0,
-  2,2.5, 2,.5),
-  ncol=2,byrow=TRUE)
-############################################################################################
-# Graph Physical Flows network
-############################################################################################# 
-pdf(file=paste0(image.dir,"Flows_phys_",row.num,".pdf"))
-qgraph(Flows.phys,  
-       edge.labels=T,
-       edge.label.cex=1.25,edge.color="black",fade=F,
-       edge.label.position=edge.label.position.vals,
-       layout=L,
-       groups=groups,
-       borders=F,
-       labels=nodes.names,
-       nodeNames=nodes.names.phys.legend,
-       shape=shapes,
-       palette="colorblind",
-       title=paste0("Total Final Output ",DF.results$TFO[[row.num]]," (MW)     ",
-       "PRR =",round(DF.results$PRR.phys[[row.num]],2),
-       " (phys), ",round(DF.results$PRR.curr[[row.num]],2), " (curr)", 
-       "\n a=",round(DF.results$alpha.phys[[row.num]],2),
-       "\n F=",round(DF.results$F.phys[[row.num]],2)) )
-dev.off()
-
-############################################################################################
-# Graph Currency Flows network
-############################################################################################
-pdf(file=paste0(image.dir,"Flows_curr_",row.num,".pdf"))
-
-qgraph(Flows.curr,
-        edge.labels=T,
-        edge.label.cex=1.25,edge.color="black",fade=F,
-        edge.label.position=edge.label.position.vals,
-        layout=L,
-        groups=groups.curr,
-        borders=F,
-        labels=nodes.names,
-        nodeNames=nodes.names.curr.legend,
-        shape=shapes,
-        palette="colorblind",
-        title=paste0("GDP $",round(DF.results$GDP.curr[[row.num]],2),
-                     " (millions)     Power Return Ratio =",round(DF.results$PRR.curr[[row.num]],2),
-                    " (phys), ",round(DF.results$PRR.curr[[row.num]],2), " (curr)", 
-                    "\n a=",round(DF.results$alpha.curr[[row.num]],2),
-                    "\n F=",round(DF.results$F.curr[[row.num]],2)) )
-dev.off()       
-
-
+RESULTS	<- rbind(RESULTS,row.results)
 row.num <- row.num + 1
 }
+
+write(RESULTS,"")
+write(RESULTS,"Results.csv")
+Results <- read_csv("Results.csv", col_types = cols(X33 = col_skip()))
+
+ggplot(data=Results,aes(x=Fin.1.Mkt.share,y=F.phys)) +
+  geom_point()
+
+
+
+
+
