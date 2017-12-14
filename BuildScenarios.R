@@ -51,8 +51,8 @@ prices.base_matrix <- create_price_matrix(P1 = prices.base_list[["P1"]],
 #
 # Sweep values
 # 
-tfos <- c(100, 200)
-f1s <- c(0.2, 0.5)
+tfos <- c(100)
+f1s <- c(0.2, 0.5, 0.8)
 fpcs <- c(0.25, 0.4)
 gammas <- c(1, 2)
 mus <- c(1, 2)
@@ -149,7 +149,11 @@ mfg.etas_DF <- colnames(mfg.etas.base) %>%
   # Convert to a data frame containing all combinations.
   expand.grid() %>% 
   # Keep track of scenarios: one per row.
-  rownames_to_column(var = "scenario") %>% 
+  rownames_to_column(var = "scenario") %>%
+  # Eliminate any scenarios that 
+  # contain values != 1 for eta1 and eta2.
+  # These are just placeholders for the resource industries and not used.
+  filter(I1==1 & I2==1) %>% 
   mutate(scenario = as.numeric(scenario)) %>% 
   # Create a tidy data frame in preparation for creating matrices
   gather(key = "colnames", value = "gammas", -scenario) %>% 
