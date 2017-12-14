@@ -5,6 +5,7 @@
 rm(list=ls())
 source("Calc_IO_metrics.R")
 source("Conversions.R")
+source("helpers_scenarios.R")
 
 Res.n		<- 2		# number of extraction industries/products
 Mfg.n		<- 4		# number of intermediate industries/products
@@ -31,26 +32,6 @@ prices.base_list <- list(P1 = Convert.prices(55, "MT", curr.scale),
                          P2 = Convert.prices(3,"MMBTU",curr.scale),
                          F1 = Convert.prices(0.10,"kWh",curr.scale),
                          F2 = Convert.prices(0.10,"kWh",curr.scale))
-
-create_price_matrix <- function(P1, P2, F1, F2){
-  lenP1 <- length(P1)
-  if (lenP1 > 1 & length(P2) == lenP1 & length(F1) == lenP1 & length(F2) == lenP1){
-    print("Inside if")
-    return(Map(create_price_matrix, P1, P2, F1, F2))
-  }
-  sum_byname(
-    # Sub-matrix of prices for P1 and P2
-    matrix(rep(c(P1, P2), Ind.n),
-           nrow = 2, ncol = Ind.n) %>%
-      setrownames_byname(paste0("P", 1:2)) %>% setcolnames_byname(industry.names),
-    # Sub-matrix of prices for F1 and F2
-    matrix(rep(c(F1, F2), Fin.n),
-           byrow = TRUE, nrow = Prod.n - Fin.n, ncol = Fin.n) %>%
-      setrownames_byname(paste0("P", (Fin.n+1):Prod.n)) %>%
-      setcolnames_byname(c("F1", "F2"))
-  ) %>%
-    sort_rows_cols(margin = 2, colorder = c(industry.names, fin.names))
-}
 
 prices.base_matrix <- create_price_matrix(P1 = prices.base_list[["P1"]], 
                                           P2 = prices.base_list[["P2"]],
