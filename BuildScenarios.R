@@ -198,6 +198,6 @@ running_list_for_expand.grid$prices <- Prices_DF$prices_matrix
 # 
 # Create the data frame of scenarios
 #
-DF.scenario.factors <- expand.grid(running_list_for_expand.grid)
+DF.scenario.matrices <- expand.grid(running_list_for_expand.grid)
 
-View(DF.scenario.factors)
+View(DF.scenario.matrices)
