@@ -64,14 +64,11 @@ Prices.mat <- matrix(c(rep(Convert.prices(55,"MT",curr.scale),Ind.n),0,0,   # Ro
 # STEP 1: Add the static matrices to each scenario in the grid
 #
 #########################################################################################
-DF.scenarios <- data.frame(DF.scenario.factors) %>%
-  mutate(TFO=tfo,tfo=NULL,
-          Mfg.etas.mat = lapply(X=TFO, function(X) Mfg.etas.mat),
-          Prices.mat = lapply(X=TFO, function(X) Prices.mat),
-          A.mat = lapply(X=TFO, function(X) A.mat)) %>%
+DF.scenarios <- DF.scenario.matrices %>%
+  rename(TFO=tfo, Mfg.etas.mat=mfg.etas,Prices.mat=prices)  %>%
+  mutate(A.mat = lapply(X=TFO, function(X) A.mat)) %>%
           select(order(colnames(.)))
 
-# DF.scenarios <- DF.scenarios[1:10,]
 ###########################################################################
 # 
 # STEP 3:
