@@ -60,7 +60,7 @@ mus <- c(1, 2)
 
 # Start the list that will be expand.grid'ed into all scenarios.
 # First item is TFOs
-running_list_for_expand.grid <- list(tfo = tfos)
+running_list_for_expand.grid <- list(TFO = tfos)
 
 # Next item is f.split matrices
 f.split_list <- lapply(f1s, function(f1){
@@ -181,7 +181,7 @@ mfg.etas_DF <- colnames(mfg.etas.base) %>%
     etas_temp = NULL
   )
 
-running_list_for_expand.grid$mfg.etas <- mfg.etas_DF$etas
+running_list_for_expand.grid$Mfg.etas.mat <- mfg.etas_DF$etas
 
 # Work on the prices matrix
 # Move into a function later.
@@ -203,7 +203,7 @@ Prices_DF <- names(prices.base_list) %>%
       sort_rows_cols(margin = 2, colorder = c(industry.names, fin.names))    
   )
   
-running_list_for_expand.grid$prices <- Prices_DF$prices_matrix
+running_list_for_expand.grid$Prices.mat <- Prices_DF$prices_matrix
 
 # 
 # Create the data frame of scenarios
