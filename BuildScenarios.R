@@ -14,6 +14,7 @@ library(ggplot2)  # For awesome plotting functions
 rm(list=ls())
 source("Calc_IO_metrics.R")
 source("Conversions.R")
+source("helpers_scenarios.R")
 
 
 Res.n		<- 2		# number of extraction industries/products
@@ -33,12 +34,19 @@ curr.scale.display <- "Millions USD"
 #
 # Base values for manufacturing etas and prices
 # 
-mfg.etas.base <- list(I1 = 1, I2 = 1, I3 = 1/3, I4 = 0.4, I5 = 0.4, I6 = 0.5)
+mfg.etas.base <- data.frame(I1 = 1, I2 = 1, I3 = 1/3, I4 = 0.4, I5 = 0.4, I6 = 0.5) %>% as.matrix %>%
+  setrownames_byname("P1") %>% 
+  setrowtype("Products") %>% setcoltype("Industries")
 
-prices.base <- list(PP1 = Convert.prices(55, "MT", curr.scale),
-                    PP2 = Convert.prices(3,"MMBTU",curr.scale),
-                    PF1 = Convert.prices(0.10,"kWh",curr.scale),
-                    PF2 = Convert.prices(0.10,"kWh",curr.scale))
+prices.base_list <- list(P1 = Convert.prices(55, "MT", curr.scale), 
+                         P2 = Convert.prices(3,"MMBTU",curr.scale),
+                         F1 = Convert.prices(0.10,"kWh",curr.scale),
+                         F2 = Convert.prices(0.10,"kWh",curr.scale))
+
+prices.base_matrix <- create_price_matrix(P1 = prices.base_list[["P1"]], 
+                                          P2 = prices.base_list[["P2"]],
+                                          F1 = prices.base_list[["F1"]],
+                                          F2 = prices.base_list[["F2"]])
 
 #
 # Sweep values
@@ -132,11 +140,11 @@ f.product.coeffs_DF <- list(
 
 running_list_for_expand.grid$f.product.coeffs <- f.product.coeffs_DF$f.product.coeffs
 
-# Work on gammas
+# Work on manufacturing efficiencies
 # Put this into a function later
-gammas_DF <- paste0("gamma_", names(mfg.etas.base)) %>% 
+mfg.etas_DF <- colnames(mfg.etas.base) %>% 
   lapply(., function(gn){gammas}) %>% 
-  set_names(paste0("gamma_", names(mfg.etas.base))) %>% 
+  set_names(colnames(mfg.etas.base)) %>% 
   # At this point, we have a named list of multipliers on manufacturing eta values.
   # Convert to a data frame containing all combinations.
   expand.grid() %>% 
@@ -149,8 +157,8 @@ gammas_DF <- paste0("gamma_", names(mfg.etas.base)) %>%
   # Add metadata in preparation for creating matrices
   mutate(
     matnames = "gammas",
-    rownames = "row", 
-    rowtypes = "row", 
+    rownames = "P1", 
+    rowtypes = "Products", 
     coltypes = "Industries"
   ) %>% 
   group_by(scenario) %>% 
@@ -158,43 +166,49 @@ gammas_DF <- paste0("gamma_", names(mfg.etas.base)) %>%
   collapse_to_matrices(matnames = "matnames", values = "gammas", 
                        rownames = "rownames", colnames = "colnames", 
                        rowtypes = "rowtypes", coltypes = "coltypes") %>% 
-  mutate(scenario = NULL)
-
-running_list_for_expand.grid$gammas <- gammas_DF$gammas
-
-# Work on mus.
-# Move into a function later.
-mus_DF <- paste0("mu_", names(prices.base)) %>% 
-  lapply(., function(mn){mus}) %>% 
-  set_names(paste0("mu_", names(prices.base))) %>% 
-  # At this point, we have a named list of multipliers on prices.
-  # Convert to a data frame containing all combinations.
-  expand.grid() %>% 
-  # Keep track of scenarios: one per row.
-  rownames_to_column(var = "scenario") %>% 
-  mutate(scenario = as.numeric(scenario)) %>% 
-  # Create a tidy data frame in preparation for creating matrices
-  gather(key = "colnames", value = "mus", -scenario) %>% 
-  arrange(scenario) %>% 
-  # Add metadata in preparation for creating matrices
+  # From the gamma matrices, create the mfg.eta matrices
   mutate(
-    matnames = "mus",
-    rownames = "row", 
-    rowtypes = "row", 
-    coltypes = "Products"
-  ) %>% 
-  group_by(scenario) %>% 
-  # Create the mu matrices
-  collapse_to_matrices(matnames = "matnames", values = "mus", 
-                       rownames = "rownames", colnames = "colnames", 
-                       rowtypes = "rowtypes", coltypes = "coltypes") %>% 
-  mutate(scenario = NULL)
+    etas_temp = elementproduct_byname(gammas, mfg.etas.base),
+    gammas = NULL,
+    etas = sum_byname(etas_temp, etas_temp %>% setrownames_byname("P2")),
+    etas = sum_byname(etas, etas_temp %>% setrownames_byname("P3")),
+    etas = sum_byname(etas, etas_temp %>% setrownames_byname("P4")),
+    etas = sum_byname(etas, etas_temp %>% setrownames_byname("P5")),
+    etas = sum_byname(etas, etas_temp %>% setrownames_byname("P6"))
+  ) %>%
+  mutate(
+    scenario = NULL, 
+    etas_temp = NULL
+  )
 
-running_list_for_expand.grid$mus <- mus_DF$mus
+running_list_for_expand.grid$mfg.etas <- mfg.etas_DF$etas
+
+# Work on the prices matrix
+# Move into a function later.
+Prices_DF <- names(prices.base_list) %>% 
+  lapply(., function(mn){mus}) %>%
+  set_names(names(prices.base_list)) %>% 
+  # Convert to a data frame containing all combinations.
+  expand.grid() %>%
+  # Keep track of scenarios: one per row.
+  rownames_to_column(var = "scenario") %>%
+  mutate(scenario = as.numeric(scenario)) %>% 
+  # Create the matrices that will multiply the prices
+  mutate(
+    mus = create_price_matrix(P1 = .data$P1, 
+                              P2 = .data$P2,
+                              F1 = .data$F1,
+                              F2 = .data$F2), 
+    prices_matrix = elementproduct_byname(prices.base_matrix, mus) %>% 
+      sort_rows_cols(margin = 2, colorder = c(industry.names, fin.names))    
+  )
+  
+running_list_for_expand.grid$prices <- Prices_DF$prices_matrix
 
 # 
 # Create the data frame of scenarios
 #
-DF.scenario.factors <- expand.grid(running_list_for_expand.grid)
+DF.scenario.matrices <- expand.grid(running_list_for_expand.grid)
 
 save.image()
+
