@@ -21,9 +21,9 @@ library(statnet)
 library(igraph)
 library(qgraph)
 
+load(".RData")
 image.dir	<- c("C:/Users/brh22/Dropbox/Apps/ShareLaTeX/Sabbatical Technical Notes/Images/")
-source("Calc_IO_metrics.R")
-source("SPS_test_grid.R")
+
 
 comma		<- c(",")
 newline	<- c(" \n")

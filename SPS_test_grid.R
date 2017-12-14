@@ -7,14 +7,8 @@ library(tibble)   # For the rownames_to_column function.  (Not sure why this did
 library(lazyeval) # For the interp function.  (Not sure why this didn't come in with matsindf.)
 library(matsindf) # For collapse_to_matrices and expand_to_tidy functions
 library(ggplot2)  # For awesome plotting functions
-library(statnet)
-library(igraph)
-library(qgraph)
 
-rm(list=ls())
-source("Calc_IO_metrics.R")
-source("Conversions.R")
-source("BuildScenarios.R")
+load(".RData")
 #
 # Set Initial Input scalars, vectors, and matrices
 #
@@ -77,7 +71,7 @@ DF.scenarios <- data.frame(DF.scenario.factors) %>%
           A.mat = lapply(X=TFO, function(X) A.mat)) %>%
           select(order(colnames(.)))
 
-DF.scen.test <- DF.scenarios[1:10,]
+# DF.scenarios <- DF.scenarios[1:10,]
 ###########################################################################
 # 
 # STEP 3:
@@ -87,7 +81,7 @@ DF.scen.test <- DF.scenarios[1:10,]
 #  1: In matrix(a, nrow = nrow(b), ncol = ncol(b), dimnames = dimnames(b)) :
 #   data length [17] is not a sub-multiple or multiple of the number of columns [2]
 ###########################################################################
-DF.eurostat <- data.frame(DF.scen.test) %>% 
+DF.eurostat <- data.frame(DF.scenarios) %>% 
   mutate( Y.colsum = elementproduct_byname(TFO, f.split),
           Y = matrixproduct_byname(f.product.coeffs,hatize_byname(Y.colsum)),
           y = rowsums_byname(Y),
@@ -129,6 +123,6 @@ DF.results <- data.frame(DF.eurostat) %>%
 # End  Results
 #########################################################################################################
 
-
+save.image()
 
 
