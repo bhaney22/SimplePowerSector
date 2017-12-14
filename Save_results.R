@@ -17,13 +17,9 @@ library(lazyeval) # For the interp function.  (Not sure why this didn't come in 
 library(matsindf) # For collapse_to_matrices and expand_to_tidy functions
 library(ggplot2)  # For awesome plotting functions
 library(plotly)
-library(statnet)
-library(igraph)
-library(qgraph)
+library(readr)
 
 load(".RData")
-image.dir	<- c("C:/Users/brh22/Dropbox/Apps/ShareLaTeX/Sabbatical Technical Notes/Images/")
-
 
 comma		<- c(",")
 newline	<- c(" \n")
@@ -62,6 +58,10 @@ curr.scale.display <- "Millions USD"
 #
 ##############################################################################################################
 
+
+#############################################################################################################
+## Generate .csv file that has all of the factors and the results.
+#############################################################################################################
 RESULTS = paste("Row",
                 "Eta.1",
                 "Eta.2",
@@ -88,13 +88,11 @@ RESULTS = paste("Row",
                 "GDP.curr","TST.curr","PRR.curr",
                 "alpha.phys","F.phys",
                 "alpha.curr","F.curr",
+                "IO.phys","IO.curr",
                 sep=",")
 
 for(row.num in 1:nrow(DF.results)) { 
 
-#############################################################################################################
-## Get factors
-#############################################################################################################
 Mfg.etas = DF.results$Mfg.etas.mat[[row.num]][1,]
 Res.prices	= DF.results$Prices.mat[[row.num]][1:2,1]	
 Fin.prices  = DF.results$Prices.mat[[row.num]][Mfg.first,Fin.nodes]
@@ -204,6 +202,8 @@ DF.results$alpha.phys[[row.num]],
 DF.results$F.phys[[row.num]],
 DF.results$alpha.curr[[row.num]],
 DF.results$F.curr[[row.num]],
+DF.results$IO.phys[[row.num]],
+DF.results$IO.curr[[row.num]],
 sep=",")
 
 RESULTS	<- rbind(RESULTS,row.results)
@@ -211,7 +211,8 @@ row.num <- row.num + 1
 }
 
 write(RESULTS,"Results.csv")
-DF.Results.csv <- data.frame(read.csv("Results.csv"))
+
+
 
 
 
