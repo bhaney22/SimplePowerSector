@@ -55,8 +55,7 @@ curr.scale.display <- "Millions USD"
 # Create Physical and Monetary IO Matrices from DF.results, row.num
 #
 ##############################################################################################################
-#### for(row.num in 1:nrow(DF.results)) { 
-for(row.num in 1:10) {
+for(row.num in seq(1,nrow(DF.results), by=1000)) { 
 
 Mfg.etas = DF.results$Mfg.etas.mat[[row.num]][1,]
 Res.prices	= DF.results$prices.mat[[row.num]][1:2,1]	
@@ -198,10 +197,11 @@ qgraph(Flows.phys,
        shape=shapes,
        palette="colorblind",
        title=paste0("Total Final Output ",DF.results$TFO[[row.num]]," (MW)     ",
-       "PRR =",round(DF.results$PRR.phys[[row.num]],2),
+       "Power Return Ratio =",round(DF.results$PRR.phys[[row.num]],2),
        " (phys), ",round(DF.results$PRR.curr[[row.num]],2), " (curr)", 
        "\n a=",round(DF.results$alpha.phys[[row.num]],2),
-       "\n F=",round(DF.results$F.phys[[row.num]],2)) )
+       "\n F=",round(DF.results$F.phys[[row.num]],2),
+       "\n (Flows in MW)") )
 dev.off()
 
 ############################################################################################
@@ -220,11 +220,12 @@ qgraph(Flows.curr,
         nodeNames=nodes.names.curr.legend,
         shape=shapes,
         palette="colorblind",
-        title=paste0("GDP $",round(DF.results$GDP.curr[[row.num]],2),
-                     " (millions)     Power Return Ratio =",round(DF.results$PRR.phys[[row.num]],2),
+        title=paste0("GDP $",format(DF.results$GDP.curr[[row.num]],width=7)," (million)               ",
+                    "Power Return Ratio =",round(DF.results$PRR.phys[[row.num]],2),
                     " (phys), ",round(DF.results$PRR.curr[[row.num]],2), " (curr)", 
                     "\n a=",round(DF.results$alpha.curr[[row.num]],2),
-                    "\n F=",round(DF.results$F.curr[[row.num]],2)) )
+                    "\n F=",round(DF.results$F.curr[[row.num]],2),
+                    "\n (Flows in $millions)") )
 dev.off()       
 
 

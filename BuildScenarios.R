@@ -20,6 +20,7 @@ source("helpers_scenarios.R")
 Res.n		<- 2		# number of extraction industries/products
 Mfg.n		<- 4		# number of intermediate industries/products
 Fin.n		<- 2 		# number of final output industries (should be perfect complements)
+nodes.n   <- Res.n + Mfg.n + Fin.n
 
 Prod.n  <- Res.n + Mfg.n
 Ind.n   <- Res.n + Mfg.n

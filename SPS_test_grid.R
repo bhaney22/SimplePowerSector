@@ -9,65 +9,15 @@ library(matsindf) # For collapse_to_matrices and expand_to_tidy functions
 library(ggplot2)  # For awesome plotting functions
 
 load(".RData")
-#
-# Set Initial Input scalars, vectors, and matrices
-#
-#
-
-Res.n		<- 2		# number of extraction industries/products
-Mfg.n		<- 4		# number of intermediate industries/products
-Fin.n		<- 2 		# number of final output industries (should be perfect complements)
-nodes.n	<- Res.n + Mfg.n + Fin.n
-
-Prod.n  <- Res.n + Mfg.n
-Ind.n   <- Res.n + Mfg.n
-
-product.names   <- c(paste0("P",seq(1:Prod.n)))
-industry.names  <- c(paste0("I",seq(1:Ind.n)))
-fin.names       <- c(paste0("F",seq(1:Fin.n)))
-
-curr.scale	<- 10^(-6)
-curr.scale.display <- "millions"
-
-Mfg.etas.mat <- matrix(rep(c(1, 1, .3, 0.4, 0.4, 0.5),Prod.n),
-                      nrow = Prod.n, ncol = Ind.n, byrow = TRUE) %>%
-                      setrownames_byname(product.names) %>%
-                      setrowtype("Products") %>%
-                      setcolnames_byname(industry.names) %>%
-                      setcoltype("Industries")
-
-A.mat <- matrix(c(0,0,1,1,0,0,
-                  0,0,0,0,1,1,
-                  0,0,0,0,0,0,
-                  0,0,0,0,0,0,
-                  0,0,0,0,0,0,
-                  0,0,0,0,0,0),
-                nrow = Prod.n, ncol = Ind.n, byrow = TRUE) %>%
-  setrownames_byname(product.names) %>%
-  setrowtype("Products") %>%
-  setcolnames_byname(industry.names) %>%
-  setcoltype("Industries")
-
-Prices.mat <- matrix(c(rep(Convert.prices(55,"MT",curr.scale),Ind.n),0,0,   # Row 1: P1 
-                       rep(Convert.prices(3,"MMBTU",curr.scale),Ind.n),0,0, # Row 2: P2 
-                       rep(c(0,0,0,0,0,0,
-                       Convert.prices(0.10,"kWh",curr.scale),    # Row 3-6: P3-P6=0
-                       Convert.prices(0.10,"kWh",curr.scale)),Mfg.n)),   # then F1,F2
-                       nrow = Prod.n, ncol = Ind.n + Fin.n, byrow = TRUE) %>% 
-  setrownames_byname(product.names) %>%
-  setrowtype("Products") %>%
-  setcolnames_byname(c(industry.names,fin.names)) %>%
-  setcoltype("Industries")
 
 ##########################################################################################################
 #
-# STEP 1: Add the static matrices to each scenario in the grid
+# STEP 1: Pull in the scenario.matrices and choose the scenarios, if this is possible for
+# non-scalar factors, such as f.split.
 #
 #########################################################################################
-DF.scenarios <- DF.scenario.matrices %>%
-  rename(TFO=tfo, Mfg.etas.mat=mfg.etas,Prices.mat=prices)  %>%
-  mutate(A.mat = lapply(X=TFO, function(X) A.mat)) %>%
-          select(order(colnames(.)))
+DF.scenarios <- DF.scenario.matrices %>% filter(TFO==100)
+                                                
 
 ###########################################################################
 # 
@@ -89,8 +39,9 @@ DF.eurostat <- data.frame(DF.scenarios) %>%
           V = matrixproduct_byname(D,hatize_byname(q)),
           g = rowsums_byname(V),
           U = matrixproduct_byname(Z,hatize_byname(g)), 
-          IO.phys = sum_byname(U,Y), 
-          IO.curr = elementproduct_byname(IO.phys,Prices.mat)   %>% 
+          IO.phys = sum_byname(U,Y) %>% 
+            sort_rows_cols(.,colorder=(c(industry.names,fin.names))), 
+          IO.curr = elementproduct_byname(IO.phys,Prices.mat) %>% 
               sort_rows_cols(.,colorder=(c(industry.names,fin.names))))
 
 ###############################################################################
@@ -111,13 +62,9 @@ DF.results <- data.frame(DF.eurostat) %>%
         TST.curr = lapply(X=IO.curr, function(X) calc.TST(X)),
         alpha.curr = lapply(X=IO.curr, function(X) calc.alpha(X)),
         F.curr = lapply(X=IO.curr, function(X) calc.F(X)))
-          
 
-
-
- 
 #########################################################################################################
-# End  Results
+# Save matrices
 #########################################################################################################
 
 save.image()
