@@ -12,7 +12,6 @@ library(matsindf) # For collapse_to_matrices and expand_to_tidy functions
 library(ggplot2)  # For awesome plotting functions
 
 rm(list=ls())
-source("Calc_IO_metrics.R")
 source("Conversions.R")
 source("helpers_scenarios.R")
 
@@ -235,5 +234,5 @@ DF.scenario.matrices <- expand.grid(running_list_for_expand.grid) %>%
   mutate(A.mat = lapply(X=TFO, function(X) A.mat)) %>%
   select(order(colnames(.)))
 
-save.image()
+save(DF.scenario.matrices,file="DF.scenario.matrices")
 

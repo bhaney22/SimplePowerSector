@@ -22,10 +22,18 @@ library(igraph)
 library(qgraph)
 
 image.dir	<- c("C:/Users/brh22/Dropbox/Apps/ShareLaTeX/Sabbatical Technical Note/Images/")
-load(".RData")
+load("DF.results.f")
 # 
 # Set indexes to point to different nodes.
 #
+Res.n		<- 2		# number of extraction industries/products
+Mfg.n		<- 4		# number of intermediate industries/products
+Fin.n		<- 2 		# number of final output industries (should be perfect complements)
+nodes.n   <- Res.n + Mfg.n + Fin.n
+
+curr.scale	<- 10^(-6)
+curr.scale.display <- "Millions USD"
+
 Mfg.first	<- Res.n + 1		# node number of first Mfg
 Fin.first	<- Res.n + Mfg.n + 1	# node number of first Fin
 
@@ -34,18 +42,27 @@ Res.nodes	<- seq(1,Res.n)
 Mfg.nodes	<- seq(Mfg.first,length=Mfg.n)
 Fin.nodes	<- seq(Fin.first,length=Fin.n)
 
+Prod.n  <- Res.n + Mfg.n
+Ind.n   <- Res.n + Mfg.n
+
+product.names   <- c(paste0("P",seq(1:Prod.n)))
+industry.names  <- c(paste0("I",seq(1:Ind.n)))
+fin.names       <- c(paste0("F",seq(1:Fin.n)))
+
 #
 # Node Names
 #
 phys.units	<-	c("MW")
 Res.names 	<- matrix(c("Coal","NG"))
 Res.units	<- c(rep(phys.units,2))
-Res.prices.units	<- c("MT","MMBTU")
+#Res.prices.units	<- c("MT","MMBTU")
+Res.prices.units	<- c("W","W")
 
 
 Fin.names	<- c("Res","Com") 
 Fin.units	<- c(rep(phys.units,2))
-Fin.prices.units	<- c("kWh","kWh")
+# Fin.prices.units	<- c("kWh","kWh")
+Fin.prices.units	<- c("W","W")
 
 
 curr.scale.display <- "Millions USD"
@@ -55,11 +72,16 @@ curr.scale.display <- "Millions USD"
 # Create Physical and Monetary IO Matrices from DF.results, row.num
 #
 ##############################################################################################################
-for(row.num in seq(1,nrow(DF.results), by=1000)) { 
+for(row.num in seq(1,nrow(DF.results.f), by=1000)) { 
 
-Mfg.etas = DF.results$Mfg.etas.mat[[row.num]][1,]
-Res.prices	= DF.results$prices.mat[[row.num]][1:2,1]	
-Fin.prices  = DF.results$Prices.mat[[row.num]][Mfg.first,Fin.nodes]
+Mfg.etas = c(round(DF.results.f$Eta.1[[row.num]],2),
+             round(DF.results.f$Eta.2[[row.num]],2),
+             round(DF.results.f$Eta.3[[row.num]],2),
+             round(DF.results.f$Eta.4[[row.num]],2))
+Res.prices	= c(round(DF.results.f$Res.1.price[[row.num]],2),
+                round(DF.results.f$Res.2.price[[row.num]],2))
+Fin.prices  = c(round(DF.results.f$Fin.1.price[[row.num]],2),
+                round(DF.results.f$Fin.2.price[[row.num]],2))
 
 
 Mfg.names	<- rep("",Mfg.n)
@@ -86,7 +108,7 @@ for(i in 1:Mfg.n){
 Mfg.names.phys.legend	<- rep("",Mfg.n)
 for(i in 1:Mfg.n){
   Mfg.names.phys.legend[i] <- 
-    paste(" ",round(Mfg.etas[2+i],2),sep = "")}  #Add 2 since Mfg.etas includes resources now
+    paste(" ",round(Mfg.etas[i],2),sep = "")}  
 
 Res.names.curr	<- rep("",Res.n)
 for(i in 1:Res.n){
@@ -118,7 +140,7 @@ Flows.phys			<- matrix(0,nrow=nodes.n,ncol=nodes.n)  %>%
   setrowtype("Products") %>%
   setcolnames_byname(c(industry.names,fin.names)) %>%
   setcoltype("Industries") %>%
-  sum_byname(.,DF.results$IO.phys[[row.num]]) %>% 
+  sum_byname(.,DF.results.f$IO.phys[[row.num]]) %>% 
   sort_rows_cols(roworder=(c(product.names,fin.names)),
                  colorder=(c(industry.names,fin.names)))
 
@@ -127,7 +149,7 @@ Flows.curr		<- matrix(0,nrow=nodes.n,ncol=nodes.n) %>%
   setrowtype("Products") %>%
   setcolnames_byname(c(industry.names,fin.names)) %>%
   setcoltype("Industries") %>%
-  sum_byname(.,DF.results$IO.curr[[row.num]]) %>% 
+  sum_byname(.,DF.results.f$IO.curr[[row.num]]) %>% 
   sort_rows_cols(roworder=(c(product.names,fin.names)),
                  colorder=(c(industry.names,fin.names)))
 
@@ -142,7 +164,7 @@ for (i in 1:Mfg.n) {
 Mfg.names.curr.legend	<- rep("",Mfg.n)
 for(i in 1:Mfg.n){
   Mfg.names.curr.legend[i] <- 
-    paste(" ",round(value.added.per.dollar.in[i],2),sep = "")}
+    paste(" $",round(value.added.per.dollar.in[i],2),sep = "")}
 nodes.names.curr.legend	<- c(Res.names.curr.legend,Mfg.names.curr.legend,Fin.names.curr.legend)
 
 
@@ -196,11 +218,11 @@ qgraph(Flows.phys,
        nodeNames=nodes.names.phys.legend,
        shape=shapes,
        palette="colorblind",
-       title=paste0("Total Final Output ",DF.results$TFO[[row.num]]," (MW)     ",
-       "Power Return Ratio =",round(DF.results$PRR.phys[[row.num]],2),
-       " (phys), ",round(DF.results$PRR.curr[[row.num]],2), " (curr)", 
-       "\n a=",round(DF.results$alpha.phys[[row.num]],2),
-       "\n F=",round(DF.results$F.phys[[row.num]],2),
+       title=paste0("Total Final Output ",DF.results.f$TFO[[row.num]]," (MW)     ",
+       "Power Return Ratio =",round(DF.results.f$PRR.phys[[row.num]],2),
+       " (phys), ",round(DF.results.f$PRR.curr[[row.num]],2), " (curr)", 
+       "\n a=",round(DF.results.f$alpha.phys[[row.num]],2),
+       "\n F=",round(DF.results.f$F.phys[[row.num]],2),
        "\n (Flows in MW)") )
 dev.off()
 
@@ -220,11 +242,11 @@ qgraph(Flows.curr,
         nodeNames=nodes.names.curr.legend,
         shape=shapes,
         palette="colorblind",
-        title=paste0("GDP $",format(DF.results$GDP.curr[[row.num]],width=7)," (million)               ",
-                    "Power Return Ratio =",round(DF.results$PRR.phys[[row.num]],2),
-                    " (phys), ",round(DF.results$PRR.curr[[row.num]],2), " (curr)", 
-                    "\n a=",round(DF.results$alpha.curr[[row.num]],2),
-                    "\n F=",round(DF.results$F.curr[[row.num]],2),
+        title=paste0("GDP $",format(DF.results.f$GDP.curr[[row.num]],width=7)," (million)               ",
+                    "Power Return Ratio =",round(DF.results.f$PRR.phys[[row.num]],2),
+                    " (phys), ",round(DF.results.f$PRR.curr[[row.num]],2), " (curr)", 
+                    "\n a=",round(DF.results.f$alpha.curr[[row.num]],2),
+                    "\n F=",round(DF.results.f$F.curr[[row.num]],2),
                     "\n (Flows in $millions)") )
 dev.off()       
 
