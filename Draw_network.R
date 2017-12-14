@@ -22,9 +22,7 @@ library(igraph)
 library(qgraph)
 
 image.dir	<- c("C:/Users/brh22/Dropbox/Apps/ShareLaTeX/Sabbatical Technical Note/Images/")
-source("Calc_IO_metrics.R")
-source("SPS_test_grid.R")
-
+load(".RData")
 # 
 # Set indexes to point to different nodes.
 #
@@ -223,7 +221,7 @@ qgraph(Flows.curr,
         shape=shapes,
         palette="colorblind",
         title=paste0("GDP $",round(DF.results$GDP.curr[[row.num]],2),
-                     " (millions)     Power Return Ratio =",round(DF.results$PRR.curr[[row.num]],2),
+                     " (millions)     Power Return Ratio =",round(DF.results$PRR.phys[[row.num]],2),
                     " (phys), ",round(DF.results$PRR.curr[[row.num]],2), " (curr)", 
                     "\n a=",round(DF.results$alpha.curr[[row.num]],2),
                     "\n F=",round(DF.results$F.curr[[row.num]],2)) )

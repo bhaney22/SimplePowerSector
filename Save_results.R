@@ -87,7 +87,7 @@ RESULTS = paste("Row",
                 "TFO","TST.phys","PRR.phys",
                 "GDP.curr","TST.curr","PRR.curr",
                 "alpha.phys","F.phys",
-                "alpha.curr","F.curr",newline,
+                "alpha.curr","F.curr",
                 sep=",")
 
 for(row.num in 1:nrow(DF.results)) { 
@@ -204,19 +204,15 @@ DF.results$alpha.phys[[row.num]],
 DF.results$F.phys[[row.num]],
 DF.results$alpha.curr[[row.num]],
 DF.results$F.curr[[row.num]],
-newline,
 sep=",")
 
 RESULTS	<- rbind(RESULTS,row.results)
 row.num <- row.num + 1
 }
 
-write(RESULTS,"")
 write(RESULTS,"Results.csv")
-Results <- read_csv("Results.csv", col_types = cols(X33 = col_skip()))
+DF.Results.csv <- data.frame(read.csv("Results.csv"))
 
-ggplot(data=Results,aes(x=Fin.1.Mkt.share,y=F.phys)) +
-  geom_point()
 
 
 
