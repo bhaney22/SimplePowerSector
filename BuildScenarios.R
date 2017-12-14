@@ -27,31 +27,35 @@ mfg.etas.base <- data.frame(I1 = 1, I2 = 1, I3 = 1/3, I4 = 0.4, I5 = 0.4, I6 = 0
   setrownames_byname("P1") %>% 
   setrowtype("Products") %>% setcoltype("Industries")
 
-product.prices.base <- list(PP1 = Convert.prices(55, "MT", curr.scale), 
-                            PP2 = Convert.prices(3,"MMBTU",curr.scale))
-final.prices.base <- list(PF1 = Convert.prices(0.10,"kWh",curr.scale),
-                          PF2 = Convert.prices(0.10,"kWh",curr.scale))
+prices.base_list <- list(P1 = Convert.prices(55, "MT", curr.scale), 
+                         P2 = Convert.prices(3,"MMBTU",curr.scale),
+                         F1 = Convert.prices(0.10,"kWh",curr.scale),
+                         F2 = Convert.prices(0.10,"kWh",curr.scale))
 
+create_price_matrix <- function(P1, P2, F1, F2){
+  lenP1 <- length(P1)
+  if (lenP1 > 1 & length(P2) == lenP1 & length(F1) == lenP1 & length(F2) == lenP1){
+    print("Inside if")
+    return(Map(create_price_matrix, P1, P2, F1, F2))
+  }
+  sum_byname(
+    # Sub-matrix of prices for P1 and P2
+    matrix(rep(c(P1, P2), Ind.n),
+           nrow = 2, ncol = Ind.n) %>%
+      setrownames_byname(paste0("P", 1:2)) %>% setcolnames_byname(industry.names),
+    # Sub-matrix of prices for F1 and F2
+    matrix(rep(c(F1, F2), Fin.n),
+           byrow = TRUE, nrow = Prod.n - Fin.n, ncol = Fin.n) %>%
+      setrownames_byname(paste0("P", (Fin.n+1):Prod.n)) %>%
+      setcolnames_byname(c("F1", "F2"))
+  ) %>%
+    sort_rows_cols(margin = 2, colorder = c(industry.names, fin.names))
+}
 
-prices.base <- sum_byname(
-  # Sub-matrix of prices for P1 and P2
-  matrix(rep(product.prices.base, Ind.n),
-         nrow = 2, ncol = Ind.n) %>% 
-    setrownames_byname(paste0("P", 1:2)) %>% setcolnames_byname(industry.names), 
-  # Sub-matrix of prices for F1 and F2
-  matrix(rep(final.prices.base %>% unlist, Fin.n), 
-         byrow = TRUE, nrow = Prod.n - Fin.n, ncol = Fin.n) %>% 
-    setrownames_byname(paste0("P", (Fin.n+1):Prod.n)) %>% 
-    setcolnames_byname(c("F1", "F2"))
-) %>% 
-  sort_rows_cols(margin = 2, colorder = c(industry.names, fin.names))
-
-product.prices.base <- matrix(c(Convert.prices(55, "MT", curr.scale), 
-                                Convert.prices(3,"MMBTU",curr.scale)),
-                              nrow = 2, ncol = 1) %>% 
-  setrownames_byname(c("P1", "P2")) %>% setcolnames_byname("I1") %>% 
-  setrowtype("Products") %>% setcoltype("Industries")
-
+prices.base_matrix <- create_price_matrix(P1 = prices.base_list[["P1"]], 
+                                          P2 = prices.base_list[["P2"]],
+                                          F1 = prices.base_list[["F1"]],
+                                          F2 = prices.base_list[["F2"]])
 
 #
 # Sweep values
@@ -190,33 +194,25 @@ running_list_for_expand.grid$mfg.etas <- mfg.etas_DF$etas
 
 # Work on the prices matrix
 # Move into a function later.
-Prices_DF <- paste0(colnames(prices.base)) %>% 
-  lapply(., function(mn){mus}) %>% 
-  set_names(paste0("mu_", names(prices.base))) %>% 
-  # At this point, we have a named list of multipliers on prices.
+Prices_DF <- names(prices.base_list) %>% 
+  lapply(., function(mn){mus}) %>%
+  set_names(names(prices.base_list)) %>% 
   # Convert to a data frame containing all combinations.
-  expand.grid() %>% 
+  expand.grid() %>%
   # Keep track of scenarios: one per row.
-  rownames_to_column(var = "scenario") %>% 
+  rownames_to_column(var = "scenario") %>%
   mutate(scenario = as.numeric(scenario)) %>% 
-  # Create a tidy data frame in preparation for creating matrices
-  gather(key = "colnames", value = "mus", -scenario) %>% 
-  arrange(scenario) %>% 
-  # Add metadata in preparation for creating matrices
+  # Create the matrices that will multiply the prices
   mutate(
-    matnames = "mus",
-    rownames = "row", 
-    rowtypes = "row", 
-    coltypes = "Products"
-  ) %>% 
-  group_by(scenario) %>% 
-  # Create the mu matrices
-  collapse_to_matrices(matnames = "matnames", values = "mus", 
-                       rownames = "rownames", colnames = "colnames", 
-                       rowtypes = "rowtypes", coltypes = "coltypes") %>% View
-  mutate(scenario = NULL)
-
-running_list_for_expand.grid$mus <- mus_DF$mus
+    mus = create_price_matrix(P1 = .data$P1, 
+                              P2 = .data$P2,
+                              F1 = .data$F1,
+                              F2 = .data$F2), 
+    prices_matrix = elementproduct_byname(prices.base_matrix, mus) %>% 
+      sort_rows_cols(margin = 2, colorder = c(industry.names, fin.names))    
+  )
+  
+running_list_for_expand.grid$prices <- Prices_DF$prices_matrix
 
 # 
 # Create the data frame of scenarios
