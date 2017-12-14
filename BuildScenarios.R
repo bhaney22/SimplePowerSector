@@ -32,6 +32,24 @@ curr.scale	<- 10^(-6)
 curr.scale.display <- "Millions USD"
 
 #
+# The A.mat are the coefficients pertaining to the percent of each product that
+# goes into each Industry. In SPS, P1 (Coal) is the one an only input into
+# the two coal power plants (I3,4) and P2 (NG) is the one and only input
+# into the gas power plants (I5,6).
+#
+A.mat <- matrix(c(0,0,1,1,0,0,
+                  0,0,0,0,1,1,
+                  0,0,0,0,0,0,
+                  0,0,0,0,0,0,
+                  0,0,0,0,0,0,
+                  0,0,0,0,0,0),
+                nrow = Prod.n, ncol = Ind.n, byrow = TRUE) %>%
+  setrownames_byname(product.names) %>%
+  setrowtype("Products") %>%
+  setcolnames_byname(industry.names) %>%
+  setcoltype("Industries")
+
+#
 # Base values for manufacturing etas and prices
 # 
 mfg.etas.base <- data.frame(I1 = 1, I2 = 1, I3 = 1/3, I4 = 0.4, I5 = 0.4, I6 = 0.5) %>% as.matrix %>%
@@ -212,7 +230,9 @@ running_list_for_expand.grid$Prices.mat <- Prices_DF$prices_matrix
 # 
 # Create the data frame of scenarios
 #
-DF.scenario.matrices <- expand.grid(running_list_for_expand.grid)
+DF.scenario.matrices <- expand.grid(running_list_for_expand.grid) %>%
+  mutate(A.mat = lapply(X=TFO, function(X) A.mat)) %>%
+  select(order(colnames(.)))
 
 save.image()
 
