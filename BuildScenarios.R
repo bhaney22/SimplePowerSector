@@ -70,8 +70,8 @@ prices.base_matrix <- create_price_matrix(P1 = prices.base_list[["P1"]],
 # Sweep values
 # 
 tfos <- c(100)
-f1s <- c(0.2, 0.5, 0.8)
-fpcs <- c(0.25, 0.4)
+f1s <- c(seq(.1,.9,by=.1))
+fpcs <- c(0.1,0.25)
 gammas <- c(1, 2)
 mus <- c(1, 2)
 
