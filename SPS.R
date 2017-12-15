@@ -48,7 +48,8 @@ DF.eurostat <- DF.scenario.matrices %>%
           IO.phys = sum_byname(U,Y) %>% 
             sort_rows_cols(.,colorder=(c(industry.names,fin.names))), 
           IO.curr = elementproduct_byname(IO.phys,Prices.mat) %>% 
-              sort_rows_cols(.,colorder=(c(industry.names,fin.names))))
+              sort_rows_cols(.,colorder=(c(industry.names,fin.names)))) %>%
+        select(.,-(Y.colsum:U))
 
 ###############################################################################
 #
