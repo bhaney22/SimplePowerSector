@@ -65,9 +65,9 @@ DF.f.split         <- subset(DF.results.f,
                             Eta.2==Eta.2.f[1] &
                             Eta.3==Eta.3.f[1] &
                             Eta.4==Eta.4.f[1] &
-                            Res.1.price==Res.1.price.f[1] &
+                           Res.1.price==Res.1.price.f[1] &
                             Res.2.price==Res.2.price.f[1] &
-                            Fin.1.price==Fin.1.price.f[1] &
+                        #    Fin.1.price==Fin.1.price.f[1] &
                             Fin.2.price==Fin.2.price.f[1] &
                          #   Fin.1.Mkt.share==Fin.1.Mkt.share.f[1] &
                             Fin.1.I.1.share==Fin.1.I.1.share.f[1] &
@@ -76,3 +76,22 @@ DF.f.split         <- subset(DF.results.f,
                             Fin.2.I.1.share==Fin.2.I.1.share.f[1] &
                             Fin.2.I.2.share==Fin.2.I.2.share.f[1] &
                             Fin.2.I.3.share==Fin.2.I.3.share.f[1])
+
+p <- plot_ly(DF.f.split,
+             type = 'scatter',
+             x = ~Fin.1.Mkt.share,
+             y = ~F.phys,
+             # Hover Over Text
+             text = paste("Res. Elec. Price: ", DF.f.split$Fin.1.price,
+                          "<br>Com. Elec. Price: ", DF.f.split$Fin.2.price,
+                          "<br> Resid. Elec. Mkt share: ",DF.f.split$Fin.1.Mkt.share,
+                          "<br> alpha (curr): ", round(as.numeric(DF.f.split$alpha.curr),2),
+                          "<br> alpha (phys): ", round(as.numeric(DF.f.split$alpha.phys),2),
+                          "<br> F (curr): ", round(as.numeric(DF.f.split$F.curr),2),
+                          "<br> F (phys): ", round(as.numeric(DF.f.split$F.phys),2),
+                          "<br> PRR (curr): ", round(as.numeric(DF.f.split$PRR.curr),2),
+                          "<br> PRR (phys): ", round(as.numeric(DF.f.split$PRR.phys),2)),
+             hoverinfo = 'text',
+             mode = 'markers'
+)
+p
