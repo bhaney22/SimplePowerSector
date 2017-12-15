@@ -15,7 +15,6 @@
 create_price_matrix <- function(P1, P2, F1, F2){
   lenP1 <- length(P1)
   if (lenP1 > 1 & length(P2) == lenP1 & length(F1) == lenP1 & length(F2) == lenP1){
-    print("Inside if")
     return(Map(create_price_matrix, P1, P2, F1, F2))
   }
   sum_byname(
