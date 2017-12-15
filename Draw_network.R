@@ -22,7 +22,7 @@ library(igraph)
 library(qgraph)
 
 image.dir	<- c("C:/Users/brh22/Dropbox/Apps/ShareLaTeX/Sabbatical Technical Note/Images/")
-load("DF.results.f")
+load("DF.results.f.RDa")
 # 
 # Set indexes to point to different nodes.
 #
