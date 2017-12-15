@@ -59,7 +59,7 @@ mfg.etas.base <- data.frame(I1 = 1, I2 = 1, I3 = 1/3, I4 = 0.4, I5 = 0.4, I6 = 0
 prices.base_list <- list(P1 = Convert.prices(55, "MT", curr.scale), 
                          P2 = Convert.prices(3,"MMBTU",curr.scale),
                          F1 = Convert.prices(0.10,"kWh",curr.scale),
-                         F2 = Convert.prices(0.10,"kWh",curr.scale))
+                         F2 = Convert.prices(0.15,"kWh",curr.scale))
 
 prices.base_matrix <- create_price_matrix(P1 = prices.base_list[["P1"]], 
                                           P2 = prices.base_list[["P2"]],
