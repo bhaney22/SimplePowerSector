@@ -64,30 +64,8 @@ Fin.units	<- c(rep(phys.units,2))
 # Fin.prices.units	<- c("kWh","kWh")
 Fin.prices.units	<- c("W","W")
 
-
-curr.scale.display <- "Millions USD"
-
-##############################################################################################################
-#
-# Create Physical and Monetary IO Matrices from DF.results, row.num
-#
-##############################################################################################################
-for(row.num in seq(1,nrow(DF.results.f), by=1000)) { 
-
-Mfg.etas = c(round(DF.results.f$Eta.1[[row.num]],2),
-             round(DF.results.f$Eta.2[[row.num]],2),
-             round(DF.results.f$Eta.3[[row.num]],2),
-             round(DF.results.f$Eta.4[[row.num]],2))
-Res.prices	= c(round(DF.results.f$Res.1.price[[row.num]],2),
-                round(DF.results.f$Res.2.price[[row.num]],2))
-Fin.prices  = c(round(DF.results.f$Fin.1.price[[row.num]],2),
-                round(DF.results.f$Fin.2.price[[row.num]],2))
-
-
 Mfg.names	<- rep("",Mfg.n)
 for(i in 1:Mfg.n){ Mfg.names[i] <- paste("I",i,sep = "") }
-Mfg.names.csv <- Mfg.names[i]
-nodes.names <- c(Res.names,Mfg.names,Fin.names)
 
 Res.names.phys	<- rep("",Res.n)
 for(i in 1:Res.n){
@@ -99,6 +77,29 @@ for(i in 1:Fin.n){
   Fin.names.phys[i] <- 
     paste(Fin.names[i],"(",Fin.units[i],")",sep = "")}
 
+nodes.names <- c(Res.names,Mfg.names,Fin.names)
+
+curr.scale.display <- "Millions USD"
+
+##############################################################################################################
+#
+# Create Physical and Monetary IO Matrices from DF.results, row.num
+#
+##############################################################################################################
+for(row.num in seq(1,nrow(DF.results.f), by=10000)) { 
+
+Mfg.etas = c(round(DF.results.f$Eta.1[[row.num]],2),
+             round(DF.results.f$Eta.2[[row.num]],2),
+             round(DF.results.f$Eta.3[[row.num]],2),
+             round(DF.results.f$Eta.4[[row.num]],2))
+VAs      = c(round(DF.results.f$VA.1[[row.num]],2),
+             round(DF.results.f$VA.2[[row.num]],2),
+             round(DF.results.f$VA.3[[row.num]],2),
+             round(DF.results.f$VA.4[[row.num]],2))
+Res.prices	= c(round(DF.results.f$Res.1.price[[row.num]],2),
+                round(DF.results.f$Res.2.price[[row.num]],2))
+Fin.prices  = c(round(DF.results.f$Fin.1.price[[row.num]],2),
+                round(DF.results.f$Fin.2.price[[row.num]],2))
 
 Mfg.names.phys	<- rep("",Mfg.n)
 for(i in 1:Mfg.n){
@@ -109,6 +110,11 @@ Mfg.names.phys.legend	<- rep("",Mfg.n)
 for(i in 1:Mfg.n){
   Mfg.names.phys.legend[i] <- 
     paste(" ",round(Mfg.etas[i],2),sep = "")}  
+
+Mfg.names.curr.legend	<- rep("",Mfg.n)
+for(i in 1:Mfg.n){
+  Mfg.names.curr.legend[i] <- 
+    paste(" $",round(VAs[i],2),sep = "")}
 
 Res.names.curr	<- rep("",Res.n)
 for(i in 1:Res.n){
@@ -133,60 +139,32 @@ for(i in 1:Fin.n){
 nodes.names.phys <- c(Res.names.phys,Mfg.names.phys,Fin.names.phys)
 nodes.names.phys.legend <- c(Res.units,Mfg.names.phys.legend,Fin.units)
 nodes.names.curr	<- c(Res.names.curr,Mfg.names.phys,Fin.names.curr)
+nodes.names.curr.legend	<- c(Res.names.curr.legend,
+                             Mfg.names.curr.legend,
+                             Fin.names.curr.legend)
 
 
-Flows.phys			<- matrix(0,nrow=nodes.n,ncol=nodes.n)  %>%
-  setrownames_byname(c(product.names,fin.names)) %>%
-  setrowtype("Products") %>%
-  setcolnames_byname(c(industry.names,fin.names)) %>%
-  setcoltype("Industries") %>%
-  sum_byname(.,DF.results.f$IO.phys[[row.num]]) %>% 
-  sort_rows_cols(roworder=(c(product.names,fin.names)),
-                 colorder=(c(industry.names,fin.names)))
-
-Flows.curr		<- matrix(0,nrow=nodes.n,ncol=nodes.n) %>%
-  setrownames_byname(c(product.names,fin.names)) %>%
-  setrowtype("Products") %>%
-  setcolnames_byname(c(industry.names,fin.names)) %>%
-  setcoltype("Industries") %>%
-  sum_byname(.,DF.results.f$IO.curr[[row.num]]) %>% 
-  sort_rows_cols(roworder=(c(product.names,fin.names)),
-                 colorder=(c(industry.names,fin.names)))
-
-#
-# Compute value-added for each industry
-#
-value.added.per.dollar.in	<-rep(0,Mfg.n)
-for (i in 1:Mfg.n) {
-  value.added.per.dollar.in[i] <- round(sum(Flows.curr[Mfg.nodes[i],Fin.nodes])/sum(Flows.curr[,Mfg.nodes[i]]),2)
-}
-
-Mfg.names.curr.legend	<- rep("",Mfg.n)
-for(i in 1:Mfg.n){
-  Mfg.names.curr.legend[i] <- 
-    paste(" $",round(value.added.per.dollar.in[i],2),sep = "")}
-nodes.names.curr.legend	<- c(Res.names.curr.legend,Mfg.names.curr.legend,Fin.names.curr.legend)
 
 
+# # 
+# # Create run.names for .tex formated line of selected IO_metrics results
+# #
+# create.phys.run.name	<- function(etas) {
+#   etas.string		<- paste(sprintf("%3.2f",etas),collapse=",")
+#   paste(paste("    Physical & (", etas.string,")",sep=""),collapse="")
+# }
 # 
-# Create run.names for .tex formated line of selected IO_metrics results
-#
-create.phys.run.name	<- function(etas) {
-  etas.string		<- paste(sprintf("%3.2f",etas),collapse=",")
-  paste(paste("    Physical & (", etas.string,")",sep=""),collapse="")
-}
-
-create.curr.run.name	<- function(vas) {
-  vas.string		<- paste(sprintf("%3.1f",vas),collapse=",")
-  curr.run.name	<- paste(paste("     Currency &(",vas.string,")",sep=""),collapse="")
-}
-phys.run.name	<- create.phys.run.name(Mfg.etas)
-curr.run.name	<- create.curr.run.name(value.added.per.dollar.in)
+# create.curr.run.name	<- function(vas) {
+#   vas.string		<- paste(sprintf("%3.1f",vas),collapse=",")
+#   curr.run.name	<- paste(paste("     Currency &(",vas.string,")",sep=""),collapse="")
+# }
+# phys.run.name	<- create.phys.run.name(Mfg.etas)
+# curr.run.name	<- create.curr.run.name(value.added.per.dollar.in)
 
 #########################################################################################################
 # Begin Plots
 #########################################################################################################
-num.edges <- ecount(graph_from_adjacency_matrix(Flows.phys,weighted=T))
+num.edges <- ecount(graph_from_adjacency_matrix(DF.results.f$Flows.phys[[row.num]],weighted=T))
 edge.label.position.vals <- c(rep(.5,Mfg.n),rep(.7,(num.edges-Mfg.n)))
 
 groups 	<- list(	"Input Units" =c(Res.nodes),
@@ -207,7 +185,7 @@ L <- matrix(c(
 # Graph Physical Flows network
 ############################################################################################# 
 pdf(file=paste0(image.dir,"Flows_phys_",row.num,".pdf"))
-qgraph(Flows.phys,  
+qgraph(DF.results.f$Flows.phys[[row.num]],  
        edge.labels=T,
        edge.label.cex=1.25,edge.color="black",fade=F,
        edge.label.position=edge.label.position.vals,
@@ -231,7 +209,7 @@ dev.off()
 ############################################################################################
 pdf(file=paste0(image.dir,"Flows_curr_",row.num,".pdf"))
 
-qgraph(Flows.curr,
+qgraph(DF.results.f$Flows.curr[[row.num]],
         edge.labels=T,
         edge.label.cex=1.25,edge.color="black",fade=F,
         edge.label.position=edge.label.position.vals,
@@ -253,3 +231,4 @@ dev.off()
 
 row.num <- row.num + 1
 }
+
