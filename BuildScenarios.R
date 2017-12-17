@@ -143,7 +143,7 @@ factors_list <- c(tfo = list(tfos), f1 = list(f1s), fpc_factors, gamma_factors, 
 # 
 # From factors_list, create a data frame of scenarios
 #
-DF.scenarios.matrices <- 
+DF.scenario.matrices <- 
   # Create the grid of all unique combinations of factors
   expand.grid(factors_list) %>% 
   # Check for valid values of pfc61 and fpc62
@@ -165,6 +165,6 @@ DF.scenarios.matrices <-
   left_join(F.split_matrices, by = "f1") %>% 
   left_join(F.product.coeffs_matrices, by = c("fpc31", "fpc32", "fpc41", "fpc42", "fpc51", "fpc52")) %>% 
   left_join(Mfg.etas_matrices, by = c("gamma1", "gamma2", "gamma3", "gamma4", "gamma5", "gamma6")) %>% 
-  left_join(Prices_matrices, by = c("mu1", "mu2", "mu3", "mu4")) %>% View
+  left_join(Prices_matrices, by = c("mu1", "mu2", "mu3", "mu4"))
 
 save(DF.scenario.matrices,file="DF.scenario.matrices")
