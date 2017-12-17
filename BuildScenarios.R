@@ -146,8 +146,8 @@ factors_list <- c(tfo = list(tfos), f1 = list(f1s), fpc_factors, gamma_factors, 
 DF.scenario.matrices <- 
   # Create the grid of all unique combinations of factors
   expand.grid(factors_list) %>% 
-  # Check for valid values of pfc61 and fpc62
-  # by calculating pfc61 and fpc62 ...
+  # Check for valid values of fpc61 and fpc62
+  # by calculating fpc61 and fpc62 ...
   mutate(
     fpc61 = 1 - fpc31 - fpc41 - fpc51,
     fpc62 = 1 - fpc32 - fpc42 - fpc52
