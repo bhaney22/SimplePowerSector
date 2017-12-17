@@ -52,187 +52,119 @@ A.mat <- matrix(c(0,0,1,1,0,0,
 #
 # Base values for manufacturing etas and prices
 # 
-mfg.etas.base <- data.frame(I1 = 1, I2 = 1, I3 = 1/3, I4 = 0.4, I5 = 0.4, I6 = 0.5) %>% as.matrix %>%
-  setrownames_byname("P1") %>% 
-  setrowtype("Products") %>% setcoltype("Industries")
+mfg.etas.base_list <- list(I1 = 1, I2 = 1, I3 = 1/3, I4 = 0.4, I5 = 0.4, I6 = 0.5)
+mfg.etas.base_matrix <- do.call(create_mfg.etas_matrix, mfg.etas.base_list)
 
 prices.base_list <- list(P1 = Convert.prices(55, "MT", curr.scale), 
                          P2 = Convert.prices(3,"MMBTU",curr.scale),
                          F1 = Convert.prices(0.10,"kWh",curr.scale),
                          F2 = Convert.prices(0.15,"kWh",curr.scale))
-
-prices.base_matrix <- create_price_matrix(P1 = prices.base_list[["P1"]], 
-                                          P2 = prices.base_list[["P2"]],
-                                          F1 = prices.base_list[["F1"]],
-                                          F2 = prices.base_list[["F2"]])
+prices.base_matrix <- do.call(create_price_matrix, prices.base_list)
 
 #
-# Sweep values
+# Establish sweep values for factors
 # 
-tfos <- c(100)
-f1s <- c(seq(.1,.9,by=.1))
-fpcs <- c(0.1,0.25)
+tfos <- c(100, 200)
+f1s <- c(0.4, 0.6)
+fpcs <- c(0.1, 0.6)
 gammas <- c(1, 2)
 mus <- c(1, 2)
 
+# 
+# Work on f.split matrices
+# Each f.split matrix is a function of the value of f1.
+# 
+F.split_matrices <- data.frame(f1 = f1s) %>% 
+  mutate(
+    F.split = create_F.split_matrix(f1)
+  )
 
-# Start the list that will be expand.grid'ed into all scenarios.
-# First item is TFOs
-running_list_for_expand.grid <- list(TFO = tfos)
-
-# Next item is f.split matrices
-f.split_list <- lapply(f1s, function(f1){
-  matrix(c(f1, 1-f1),
-         nrow = 1, ncol = 2, byrow = TRUE) %>% 
-    setrownames_byname("Product") %>% setcolnames_byname(c("F1", "F2")) %>% 
-    setrowtype("Products") %>% setcoltype("Industries")
-})
-
-running_list_for_expand.grid$f.split <- f.split_list
-
+# 
 # Work on f.product.coeffs
-# Put this into a function later!
-f.product.coeffs_DF <- list(
+# Each f.product.coeffs matrix is a function of 
+# fpc31, fpc32, fpc41, fpc42, fpc51, and fpc52.
+# fpc61 and fpc62 are calculated from the input factors,
+# and we check (later) whether any of fpc6x values
+# become negative.
+# If so, we delete them from the scenarios under consideration.
+# 
+fpc_factors <- list(
   fpc31 = fpcs, fpc32 = fpcs,
   fpc41 = fpcs, fpc42 = fpcs,
   fpc51 = fpcs, fpc52 = fpcs
-) %>% 
-  expand.grid() %>% 
-  # At this point, we have a data frame whose rows
-  # contain all possible combinations of fpcs for 
-  # entries in rows 3, 4, and 5 of the f.product.coeffs matrix.
-  # Calculate the values for the 6th row,
-  # even if some of them might be negative.
+)
+
+F.product.coeffs_matrices <- expand.grid(fpc_factors) %>% 
+  mutate(
+    F.product.coeffs = create_F.product.coeffs_matrix(fpc31 = fpc31, fpc32 = fpc32,
+                                                      fpc41 = fpc41, fpc42 = fpc42,
+                                                      fpc51 = fpc51, fpc52 = fpc52)
+  )
+  
+#
+# Work on manufacturing efficiencies
+# Each mfg.etas matrix is a function of gamma1 ... gamma6,
+# where gamma is a multiplier on a base value for manufacturing efficiency.
+# 
+gamma_factors <- names(mfg.etas.base_list) %>% 
+  lapply(., function(gammaname){gammas}) %>% 
+  set_names(paste0("gamma", 1:Ind.n))
+
+Mfg.etas_matrices <- 
+  expand.grid(gamma_factors) %>% 
+  mutate(
+    gammas = create_mfg.etas_matrix(I1 = gamma1, I2 = gamma2, I3 = gamma3, I4 = gamma4, I5 = gamma5, I6 = gamma6),
+    mfg.etas = elementproduct_byname(gammas, mfg.etas.base_matrix),
+    gammas = NULL
+  )
+
+#
+# Work on prices 
+# Each price matrix is a function of mu1 ... mu4,
+# where mu is a multiplier on a base value for price.
+# 
+mu_factors <- names(prices.base_list) %>% 
+  lapply(., function(muname){mus}) %>%
+  set_names(paste0("mu", 1:4))
+
+Prices_matrices <- 
+  expand.grid(mu_factors) %>% 
+  mutate(
+    mus = create_price_matrix(P1 = mu1, P2 = mu2, F1 = mu3, F2 = mu4), 
+    prices = elementproduct_byname(mus, prices.base_matrix) %>% sort_rows_cols(margin = 2, colorder = c(industry.names, fin.names)),
+    mus = NULL
+  )
+
+#
+# Create a named list of all factors and their possible sweep values
+# 
+factors_list <- c(tfo = list(tfos), f1 = list(f1s), fpc_factors, gamma_factors, mu_factors)
+
+# 
+# From factors_list, create a data frame of scenarios
+#
+DF.scenarios.matrices <- 
+  # Create the grid of all unique combinations of factors
+  expand.grid(factors_list) %>% 
+  # Check for valid values of pfc61 and fpc62
+  # by calculating pfc61 and fpc62 ...
   mutate(
     fpc61 = 1 - fpc31 - fpc41 - fpc51,
     fpc62 = 1 - fpc32 - fpc42 - fpc52
   ) %>% 
-  # Eliminate any scenarios that 
-  # contain negative values
-  # in the 6th row.
+  # ... then requiring that both fpc61 and fpc62 are non-negative.
   filter(fpc61 >= 0 & fpc62 >= 0) %>% 
   mutate(
-    # Add zeroes for the first and second rows
-    fpc11 = 0, fpc12 = 0,
-    fpc21 = 0, fpc22 = 0
+    fpc61 = NULL,
+    fpc62 = NULL
   ) %>% 
-  # Keep track of which scenario we're evaluating
-  rownames_to_column("scenario") %>% 
-  mutate(
-    scenario = as.numeric(scenario)
-  ) %>% 
-  # Get into tidy structure
-  gather(key = "var", value = "val", fpc11, fpc12,
-         fpc21, fpc22,
-         fpc31, fpc32,
-         fpc41, fpc42,
-         fpc51, fpc52,
-         fpc61, fpc62) %>% 
-  mutate(
-    # Add metadata for collapsing to matrices
-    rownames = case_when(
-      startsWith(.data$var, "fpc1") ~ "P1",
-      startsWith(.data$var, "fpc2") ~ "P2",
-      startsWith(.data$var, "fpc3") ~ "P3",
-      startsWith(.data$var, "fpc4") ~ "P4",
-      startsWith(.data$var, "fpc5") ~ "P5",
-      startsWith(.data$var, "fpc6") ~ "P6"
-    ),
-    colnames = case_when(
-      endsWith(.data$var, "1") ~ "F1",
-      endsWith(.data$var, "2") ~ "F2",
-      TRUE ~ NA_character_
-    ),
-    rowtypes = "Products",
-    coltypes = "Industries", 
-    matnames = "f.product.coeffs"
-  ) %>% 
-  # Make one matrix for each scenario (each row of the data frame)
-  group_by(scenario) %>% 
-  # Use the metadata to collapse to matrices
-  collapse_to_matrices(values = "val", matnames = "matnames", 
-                       rownames = "rownames", colnames = "colnames", 
-                       rowtypes = "rowtypes", coltypes = "coltypes") %>% 
-  rename(f.product.coeffs = val) %>%
-  mutate(scenario = NULL)
-
-running_list_for_expand.grid$f.product.coeffs <- f.product.coeffs_DF$f.product.coeffs
-
-# Work on manufacturing efficiencies
-# Put this into a function later
-mfg.etas_DF <- colnames(mfg.etas.base) %>% 
-  lapply(., function(gn){gammas}) %>% 
-  set_names(colnames(mfg.etas.base)) %>% 
-  # At this point, we have a named list of multipliers on manufacturing eta values.
-  # Convert to a data frame containing all combinations.
-  expand.grid() %>% 
-  # Keep track of scenarios: one per row.
-  rownames_to_column(var = "scenario") %>%
-  # Eliminate any scenarios that 
-  # contain values != 1 for eta1 and eta2.
-  # These are just placeholders for the resource industries and not used.
-  filter(I1==1 & I2==1) %>% 
-  mutate(scenario = as.numeric(scenario)) %>% 
-  # Create a tidy data frame in preparation for creating matrices
-  gather(key = "colnames", value = "gammas", -scenario) %>% 
-  arrange(scenario) %>% 
-  # Add metadata in preparation for creating matrices
-  mutate(
-    matnames = "gammas",
-    rownames = "P1", 
-    rowtypes = "Products", 
-    coltypes = "Industries"
-  ) %>% 
-  group_by(scenario) %>% 
-  # Create the gamma matrices
-  collapse_to_matrices(matnames = "matnames", values = "gammas", 
-                       rownames = "rownames", colnames = "colnames", 
-                       rowtypes = "rowtypes", coltypes = "coltypes") %>% 
-  # From the gamma matrices, create the mfg.eta matrices
-  mutate(
-    etas_temp = elementproduct_byname(gammas, mfg.etas.base),
-    gammas = NULL,
-    etas = sum_byname(etas_temp, etas_temp %>% setrownames_byname("P2")),
-    etas = sum_byname(etas, etas_temp %>% setrownames_byname("P3")),
-    etas = sum_byname(etas, etas_temp %>% setrownames_byname("P4")),
-    etas = sum_byname(etas, etas_temp %>% setrownames_byname("P5")),
-    etas = sum_byname(etas, etas_temp %>% setrownames_byname("P6"))
-  ) %>%
-  mutate(
-    scenario = NULL, 
-    etas_temp = NULL
-  )
-
-running_list_for_expand.grid$Mfg.etas.mat <- mfg.etas_DF$etas
-
-# Work on the prices matrix
-# Move into a function later.
-Prices_DF <- names(prices.base_list) %>% 
-  lapply(., function(mn){mus}) %>%
-  set_names(names(prices.base_list)) %>% 
-  # Convert to a data frame containing all combinations.
-  expand.grid() %>%
-  # Keep track of scenarios: one per row.
-  rownames_to_column(var = "scenario") %>%
-  mutate(scenario = as.numeric(scenario)) %>% 
-  # Create the matrices that will multiply the prices
-  mutate(
-    mus = create_price_matrix(P1 = .data$P1, 
-                              P2 = .data$P2,
-                              F1 = .data$F1,
-                              F2 = .data$F2), 
-    prices_matrix = elementproduct_byname(prices.base_matrix, mus) %>% 
-      sort_rows_cols(margin = 2, colorder = c(industry.names, fin.names))    
-  )
-  
-running_list_for_expand.grid$Prices.mat <- Prices_DF$prices_matrix
-
-# 
-# Create the data frame of scenarios
-#
-DF.scenario.matrices <- expand.grid(running_list_for_expand.grid) %>%
-  mutate(A.mat = lapply(X=TFO, function(X) A.mat)) %>%
-  select(order(colnames(.)))
+  # Join all matrices by the factors that make them unique,
+  # thereby providing a data frame that contains all factors
+  # and associated matrices in a single data frame.
+  # Each row of this data frame is a scenario to be evaluated.
+  left_join(F.split_matrices, by = "f1") %>% 
+  left_join(F.product.coeffs_matrices, by = c("fpc31", "fpc32", "fpc41", "fpc42", "fpc51", "fpc52")) %>% 
+  left_join(Mfg.etas_matrices, by = c("gamma1", "gamma2", "gamma3", "gamma4", "gamma5", "gamma6")) %>% 
+  left_join(Prices_matrices, by = c("mu1", "mu2", "mu3", "mu4")) %>% View
 
 save(DF.scenario.matrices,file="DF.scenario.matrices")
-

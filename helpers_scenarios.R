@@ -2,16 +2,120 @@
 # This file contains helper functions for the BuildScenarios script.
 # 
 
-#' Create a price matrix
+
+#' Create an F.split matrix
+#' 
+#' Also works when f1 is a list of f1 values.
 #'
-#' @param P1 The price for product 1
-#' @param P2 The price for product 2
-#' @param F1 The price of commodity purchased by F1
-#' @param F2 The price of commodity purchased by F2
+#' @param f1 the fraction for Industry 1
+#'
+#' @return a 1x2 matrix consisting of f1 and 1-f1
+#' @export
+#' 
+#' @examples 
+#' create_F.split_matrix(0.2)
+create_F.split_matrix <- function(f1){
+  if (length(f1) > 1){
+    return(lapply(f1, create_F.split_matrix))
+  }
+  matrix(c(f1, 1-f1),
+         nrow = 1, ncol = 2, byrow = TRUE) %>%
+    setrownames_byname("Product") %>% setcolnames_byname(c("F1", "F2")) %>%
+    setrowtype("Products") %>% setcoltype("Industries")
+}
+
+
+#' Create an F.product.coeffs matrix
+#' 
+#' Also works with lists for \code{fpc31} ... \code{pfc52}.
+#'
+#' @param fpc31 the entry in the 3rd row and 1st column of the F.produce.coeffs matrix
+#' @param fpc32 the entry in the 3rd row and 2nd column of the F.produce.coeffs matrix
+#' @param fpc41 the entry in the 4th row and 1st column of the F.produce.coeffs matrix
+#' @param fpc42 the entry in the 4th row and 2nd column of the F.produce.coeffs matrix
+#' @param fpc51 the entry in the 5th row and 1st column of the F.produce.coeffs matrix
+#' @param fpc52 the entry in the 5th row and 2nd column of the F.produce.coeffs matrix
+#'
+#' @return an F.product.coeffs matrix
+#' @export
+#' 
+#' @examples 
+#' create_F.product.coeffs_matrix(fpc31 = 0.2, fpc32 = 0.3, 
+#'                                fpc41 = 0.1, fpc42 = 0.25,
+#'                                fpc51 = 0.2, fpc52 = 0.1)
+create_F.product.coeffs_matrix <- function(fpc31, fpc32,
+                                           fpc41, fpc42,
+                                           fpc51, fpc52){
+  lenfpc31 <- length(fpc31)
+  if (lenfpc31 > 1 & length(fpc32) == lenfpc31 & 
+      length(fpc41) == lenfpc31 & length(fpc42) == lenfpc31 & 
+      length(fpc51) == lenfpc31 & length(fpc52) == lenfpc31){
+    return(Map(create_F.product.coeffs_matrix, fpc31, fpc32, fpc41, fpc42, fpc51, fpc52))
+  }
+  # Add additional items to the matrix
+  fpc11 <- 0
+  fpc12 <- 0
+  fpc21 <- 0
+  fpc22 <- 0
+  fpc61 <- 1 - fpc31 - fpc41 - fpc51
+  fpc62 <- 1 - fpc32 - fpc42 - fpc52
+  matrix(c(fpc11, fpc12,
+           fpc21, fpc22, 
+           fpc31, fpc32,
+           fpc41, fpc42,
+           fpc51, fpc52,
+           fpc61, fpc62),
+         nrow = 6, ncol = 2, byrow = TRUE) %>% 
+    setrownames_byname(c("P1", "P2", "P3", "P4", "P5", "P6")) %>% 
+    setcolnames_byname(c("F1", "F2")) %>% 
+    setrowtype("Products") %>% setcoltype("Industries")
+}
+
+#' Create a matrix of manufacturing efficiencies (etas)
+#' 
+#' Also works when \code{I1}, \code{I2}, \code{I3}, \code{I4}, \code{I5}, and \code{I6}
+#' are lists.
+#'
+#' @param I1 the efficiency for the 1st industry
+#' @param I2 the efficiency for the 2nd industry
+#' @param I3 the efficiency for the 3rd industry
+#' @param I4 the efficiency for the 4th industry
+#' @param I5 the efficiency for the 5th industry
+#' @param I6 the efficiency for the 6th industry
+#'
+#' @return a matrix of manufacturing efficiencies
+#' @export
+#'
+#' @examples
+#' create_mfg.etas_matrix(I1 = 0.2, I2 = 0.3, I3 = 0.25, I4 = 0.5, I5 = 0.15, I6 = 0.75)
+create_mfg.etas_matrix <- function(I1, I2, I3, I4, I5, I6){
+  lenI1 <- length(I1)
+  if (lenI1 > 1 & length(I2) == lenI1 &
+      length(I3) == lenI1 & length(I4) == lenI1 &
+      length(I5) == lenI1 & length(I6) == lenI1){
+    return(Map(create_mfg.etas_matrix, I1, I2, I3, I4, I5, I6))
+  }
+  r <- c(I1, I2, I3, I4, I5, I6)
+  matrix(rep.int(r, 6), 
+         nrow = 6, ncol = 6, byrow = TRUE) %>% 
+    setrownames_byname(paste0("P", 1:6)) %>% setcolnames_byname(paste0("I", 1:6)) %>% 
+    setrowtype("Products") %>% setcoltype("Industries")
+}
+
+#' Create a price matrix
+#' 
+#' Also works when \code{P1}, \code{P2}, \code{F1}, and \code{F2} are lists of prices.
+#'
+#' @param P1 the price for product 1
+#' @param P2 the price for product 2
+#' @param F1 the price of commodity purchased by F1
+#' @param F2 the price of commodity purchased by F2
 #'
 #' @return a matrix of prices, with zeroes in all the right places
 #' @export
 #'
+#' @examples
+#' create_price_matrix(P1 = 0.05595097, P2 = 0.08967107, F1 = 0.876, F2 = 1.314)
 create_price_matrix <- function(P1, P2, F1, F2){
   lenP1 <- length(P1)
   if (lenP1 > 1 & length(P2) == lenP1 & length(F1) == lenP1 & length(F2) == lenP1){
