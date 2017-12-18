@@ -165,6 +165,7 @@ DF.scenario.matrices <-
   left_join(F.split_matrices, by = "f1") %>% 
   left_join(F.product.coeffs_matrices, by = c("fpc31", "fpc32", "fpc41", "fpc42", "fpc51", "fpc52")) %>% 
   left_join(Mfg.etas_matrices, by = c("gamma1", "gamma2", "gamma3", "gamma4", "gamma5", "gamma6")) %>% 
-  left_join(Prices_matrices, by = c("mu1", "mu2", "mu3", "mu4"))
+  left_join(Prices_matrices, by = c("mu1", "mu2", "mu3", "mu4") %>%
+              mutate(A.mat = lapply(X=TFO, function(X) A.mat)) )
 
-save(DF.scenario.matrices,file="DF.scenario.matrices")
+save(DF.scenario.matrices,file="DF.scenario.matrices.new")
