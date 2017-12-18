@@ -170,7 +170,10 @@ DF.scenario.matrices <-
   # Filter to make 3 cases only
   filter(gamma1 ==1 , gamma2 == 1, gamma3 == 1, gamma4 == 1, gamma5 == 1, gamma6 == 1, 
          mu1 == 1, mu2 == 1, mu3 == 1, mu4 == 1,
-         f1 == 0.4)
+         f1 == 0.4) %>% 
+  mutate(
+    A.mat = lapply(X = tfo, function(X) {A.mat})
+  )
 
 
 save(DF.scenario.matrices,file="DF.scenario.matrices")
