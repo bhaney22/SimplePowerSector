@@ -34,9 +34,9 @@ source("Calc_IO_metrics.R")
 #  1: In matrix(a, nrow = nrow(b), ncol = ncol(b), dimnames = dimnames(b)) :
 #   data length [12288] is not a sub-multiple or multiple of the number of columns [2]
 ###########################################################################
-DF.eurostat <- DF.scenario.matrices %>% 
-  mutate( Y.colsum = elementproduct_byname(TFO, f.split),
-          Y = matrixproduct_byname(f.product.coeffs,hatize_byname(Y.colsum)),
+DF.eurostat <- data.frame(DF.scenario.matrices) %>% 
+  mutate( Y.colsum = elementproduct_byname(TFO, F.split),
+          Y = matrixproduct_byname(F.product.coeffs,hatize_byname(Y.colsum)),
           y = rowsums_byname(Y),
           Z =  elementquotient_byname(A.mat,Mfg.etas.mat),
           D = transpose_byname(identize_byname(Z)),
@@ -56,24 +56,48 @@ DF.eurostat <- DF.scenario.matrices %>%
 # Create the IO metrics results DF
 #  
 #################################################################################
-DF.results <- DF.eurostat  %>% 
+DF.results <- data.frame(DF.eurostat)  %>% 
   mutate(
         IO.phys.sumall = sumall_byname(IO.phys),
         IO.curr.sumall = sumall_byname(IO.curr),
-        GDP.curr = sumall_byname(select_cols_byname(IO.curr,retain_pattern = "^F")),
+        GDP.curr = as.numeric(sumall_byname(select_cols_byname(IO.curr,retain_pattern = "^F"))),
         PRR.phys = TFO/(as.numeric(IO.phys.sumall)-TFO),
         PRR.curr = as.numeric(GDP.curr)/(as.numeric(IO.curr.sumall)-as.numeric(GDP.curr)),
-        TST.phys = lapply(X=IO.phys, function(X) calc.TST(X)),
-        alpha.phys = lapply(X=IO.phys, function(X) calc.alpha(X)),
-        F.phys = lapply(X=IO.phys, function(X) calc.F(X)),
-        TST.curr = lapply(X=IO.curr, function(X) calc.TST(X)),
-        alpha.curr = lapply(X=IO.curr, function(X) calc.alpha(X)),
-        F.curr = lapply(X=IO.curr, function(X) calc.F(X)))
+        TST.phys = sapply(X=IO.phys, function(X) calc.TST(X)),
+        alpha.phys = sapply(X=IO.phys, function(X) calc.alpha(X)),
+        F.phys = sapply(X=IO.phys, function(X) calc.F(X)),
+        TST.curr = sapply(X=IO.curr, function(X) calc.TST(X)),
+        alpha.curr = sapply(X=IO.curr, function(X) calc.alpha(X)),
+        F.curr = sapply(X=IO.curr, function(X) calc.F(X)),                
+        Flows.phys=lapply(X=IO.phys, function(IO.phys) {
+          matrix(0,nrow=nodes.n,ncol=nodes.n)  %>%
+            setrownames_byname(c(product.names,fin.names)) %>%
+            setrowtype("Products") %>%
+            setcolnames_byname(c(industry.names,fin.names)) %>%
+            setcoltype("Industries") %>%
+            sum_byname(.,IO.phys) %>% 
+            sort_rows_cols(roworder=(c(product.names,fin.names)),
+                           colorder=(c(industry.names,fin.names)))
+        }),
+        Flows.curr=lapply(X=IO.curr, function(IO.curr){ 
+          matrix(0,nrow=nodes.n,ncol=nodes.n) %>%
+            setrownames_byname(c(product.names,fin.names)) %>%
+            setrowtype("Products") %>%
+            setcolnames_byname(c(industry.names,fin.names)) %>%
+            setcoltype("Industries") %>%
+            sum_byname(.,IO.curr) %>% 
+            sort_rows_cols(roworder=(c(product.names,fin.names)),
+                           colorder=(c(industry.names,fin.names)))
+        }),
+        VA.1=sapply(X=Flows.curr,function(Flows.curr)
+          sum(Flows.curr[Mfg.nodes[1],Fin.nodes])/sum(Flows.curr[,Mfg.nodes[1]])),
+        VA.2=sapply(X=Flows.curr,function(Flows.curr)
+          sum(Flows.curr[Mfg.nodes[2],Fin.nodes])/sum(Flows.curr[,Mfg.nodes[2]])),
+        VA.3=sapply(X=Flows.curr,function(Flows.curr)
+          sum(Flows.curr[Mfg.nodes[3],Fin.nodes])/sum(Flows.curr[,Mfg.nodes[3]])),
+        VA.4=sapply(X=Flows.curr,function(Flows.curr)
+          sum(Flows.curr[Mfg.nodes[4],Fin.nodes])/sum(Flows.curr[,Mfg.nodes[4]])),
+        Mfg.etas.mat=NULL,Prices.mat=NULL,f.split=NULL,f.product.coeffs=NULL)
 
-#########################################################################################################
-# Remove intermediate data frames
-#########################################################################################################
-rm(DF.eurostat,DF.scenario.matrices)
-save(DF.results,file="DF.results")
+save(DF.results,file="DF.results.Rda")
 
-source("Save_results.R")

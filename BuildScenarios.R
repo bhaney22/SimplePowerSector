@@ -15,11 +15,16 @@ rm(list=ls())
 source("Conversions.R")
 source("helpers_scenarios.R")
 
-
 Res.n		<- 2		# number of extraction industries/products
 Mfg.n		<- 4		# number of intermediate industries/products
 Fin.n		<- 2 		# number of final output industries (should be perfect complements)
 nodes.n   <- Res.n + Mfg.n + Fin.n
+Mfg.first	<- Res.n + 1		# node number of first Mfg
+Fin.first	<- Res.n + Mfg.n + 1	# node number of first Fin
+
+Res.nodes	<- seq(1,Res.n)
+Mfg.nodes	<- seq(Mfg.first,length=Mfg.n)
+Fin.nodes	<- seq(Fin.first,length=Fin.n)
 
 Prod.n  <- Res.n + Mfg.n
 Ind.n   <- Res.n + Mfg.n
@@ -32,6 +37,21 @@ curr.scale	<- 10^(-6)
 curr.scale.display <- "Millions USD"
 
 #
+# Set base values for manufacturing etas and prices
+# 
+Eta.1 = 1     #Coal Extraction industry 
+Eta.2 = 1     #NG Extraction industry
+Eta.3 = .25   #Coal power plant 1
+Eta.4 = .3    #Coal power plant 2
+Eta.5 = .4    #NG power plant 1
+Eta.6 = .5    #NG power plant 2
+Res.1.price = Convert.prices(55, "MT", curr.scale)  #price of coal per MT -> MW
+Res.2.price = Convert.prices(3,"MMBTU",curr.scale)  #price of NG per MMBTU -> MW
+Fin.1.price = Convert.prices(.10,"kWh",curr.scale)  #price of res.elec per kWh -> MW
+Fin.2.price = Convert.prices(.15,"kWh",curr.scale) #price of com.elec per kWh -> MW
+
+#
+# Set the A.mat coefficients
 # The A.mat are the coefficients pertaining to the percent of each product that
 # goes into each Industry. In SPS, P1 (Coal) is the one an only input into
 # the two coal power plants (I3,4) and P2 (NG) is the one and only input
@@ -49,24 +69,21 @@ A.mat <- matrix(c(0,0,1,1,0,0,
   setcolnames_byname(industry.names) %>%
   setcoltype("Industries")
 
-#
-# Base values for manufacturing etas and prices
-# 
-mfg.etas.base_list <- list(I1 = 1, I2 = 1, I3 = 1/3, I4 = 0.4, I5 = 0.4, I6 = 0.5)
+mfg.etas.base_list <- list(I1 = Eta.1, I2 = Eta.2, I3 = Eta.3, I4 = Eta.4, I5 = Eta.5, I6 = Eta.6)
 mfg.etas.base_matrix <- do.call(create_mfg.etas_matrix, mfg.etas.base_list)
 
-prices.base_list <- list(P1 = Convert.prices(55, "MT", curr.scale), 
-                         P2 = Convert.prices(3,"MMBTU",curr.scale),
-                         F1 = Convert.prices(0.10,"kWh",curr.scale),
-                         F2 = Convert.prices(0.15,"kWh",curr.scale))
+prices.base_list <- list(P1 = Res.1.price, 
+                         P2 = Res.2.price,
+                         F1 = Fin.1.price,
+                         F2 = Fin.2.price)
 prices.base_matrix <- do.call(create_price_matrix, prices.base_list)
 
 #
 # Establish sweep values for factors
 # 
-tfos <- c(100, 200)
+tfos <- c(100)
 f1s <- c(0.4, 0.6)
-fpcs <- c(0.1, 0.6)
+fpcs <- c(1, 0.5, 0.0)
 gammas <- c(1, 2)
 mus <- c(1, 2)
 
@@ -89,16 +106,16 @@ F.split_matrices <- data.frame(f1 = f1s) %>%
 # If so, we delete them from the scenarios under consideration.
 # 
 fpc_factors <- list(
-  fpc31 = fpcs, fpc32 = fpcs,
-  fpc41 = fpcs, fpc42 = fpcs,
-  fpc51 = fpcs, fpc52 = fpcs
+  fpc13 = fpcs, fpc23 = fpcs,
+  fpc14 = fpcs, fpc24 = fpcs,
+  fpc15 = fpcs, fpc25 = fpcs
 )
 
 F.product.coeffs_matrices <- expand.grid(fpc_factors) %>% 
-  mutate(
-    F.product.coeffs = create_F.product.coeffs_matrix(fpc31 = fpc31, fpc32 = fpc32,
-                                                      fpc41 = fpc41, fpc42 = fpc42,
-                                                      fpc51 = fpc51, fpc52 = fpc52)
+  mutate(F.product.coeffs = 
+           create_F.product.coeffs_matrix( fpc13 = fpc13, fpc23 = fpc23,
+                                           fpc14 = fpc14, fpc24 = fpc24,
+                                           fpc15 = fpc15, fpc25 = fpc25)
   )
   
 #
@@ -138,7 +155,8 @@ Prices_matrices <-
 #
 # Create a named list of all factors and their possible sweep values
 # 
-factors_list <- c(tfo = list(tfos), f1 = list(f1s), fpc_factors, gamma_factors, mu_factors)
+factors_list <- c(tfo = list(tfos), f1 = list(f1s), 
+                  fpc_factors, gamma_factors, mu_factors)
 
 # 
 # From factors_list, create a data frame of scenarios
@@ -149,23 +167,51 @@ DF.scenario.matrices <-
   # Check for valid values of fpc61 and fpc62
   # by calculating fpc61 and fpc62 ...
   mutate(
-    fpc61 = 1 - fpc31 - fpc41 - fpc51,
-    fpc62 = 1 - fpc32 - fpc42 - fpc52
+    fpc16 = 1 - fpc13 - fpc14 - fpc15,
+    fpc26 = 1 - fpc23 - fpc24 - fpc25
   ) %>% 
   # ... then requiring that both fpc61 and fpc62 are non-negative.
-  filter(fpc61 >= 0 & fpc62 >= 0) %>% 
-  mutate(
-    fpc61 = NULL,
-    fpc62 = NULL
-  ) %>% 
+  filter(fpc16 >= 0 & fpc26 >= 0) %>% 
+
   # Join all matrices by the factors that make them unique,
   # thereby providing a data frame that contains all factors
   # and associated matrices in a single data frame.
   # Each row of this data frame is a scenario to be evaluated.
   left_join(F.split_matrices, by = "f1") %>% 
-  left_join(F.product.coeffs_matrices, by = c("fpc31", "fpc32", "fpc41", "fpc42", "fpc51", "fpc52")) %>% 
+  left_join(F.product.coeffs_matrices, by = c("fpc13", "fpc14", "fpc15",
+                                              "fpc23", "fpc24", "fpc25")) %>% 
   left_join(Mfg.etas_matrices, by = c("gamma1", "gamma2", "gamma3", "gamma4", "gamma5", "gamma6")) %>% 
-  left_join(Prices_matrices, by = c("mu1", "mu2", "mu3", "mu4") %>%
-              mutate(A.mat = lapply(X=TFO, function(X) A.mat)) )
+  left_join(Prices_matrices, by = c("mu1", "mu2", "mu3", "mu4") ) %>% 
+# Filter to make 3 cases only
+filter(tfo==100, 
+       gamma1 ==1 , gamma2 == 1, 
+       # gamma3 == 1, 
+       gamma4 == 1, gamma5 == 1, gamma6 == 1, 
+       mu1 == 1, mu2 == 1, mu3 == 1, mu4 == 1,
+       f1 == 0.4) %>%
+  rename(TFO = tfo,
+         Fin.1.Mkt.share = f1,
+         Mfg.etas.mat = mfg.etas,
+         Prices.mat = prices,
+         Fin.1.I.3.share = fpc13,
+         Fin.1.I.4.share = fpc14,
+         Fin.1.I.5.share = fpc15,
+         Fin.1.I.6.share = fpc16,
+         Fin.2.I.3.share = fpc23,
+         Fin.2.I.4.share = fpc24,
+         Fin.2.I.5.share = fpc25,
+         Fin.2.I.6.share = fpc26 ) %>%
+  mutate(A.mat = lapply(X = TFO, function(X) {A.mat}),
+        Eta.1=sapply(X=Mfg.etas.mat, function(X) X[1,1]),
+        Eta.2=sapply(X=Mfg.etas.mat, function(X) X[1,2]),
+        Eta.3=sapply(X=Mfg.etas.mat, function(X) X[1,3]),
+        Eta.4=sapply(X=Mfg.etas.mat, function(X) X[1,4]),
+        Eta.5=sapply(X=Mfg.etas.mat, function(X) X[1,5]),
+        Eta.6=sapply(X=Mfg.etas.mat, function(X) X[1,6]),
+        Res.1.price=sapply(X=Prices.mat, function(X) X[1,1]),
+        Res.2.price=sapply(X=Prices.mat, function(X) X[2,1]),
+        Fin.1.price=sapply(X=Prices.mat, function(X) X[Mfg.first,Fin.first]),
+        Fin.2.price=sapply(X=Prices.mat, function(X) X[Mfg.first,Fin.first+1]))   
 
-save(DF.scenario.matrices,file="DF.scenario.matrices.new")
+save(DF.scenario.matrices,file="DF.scenario.matrices")
+

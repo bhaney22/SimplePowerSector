@@ -43,28 +43,28 @@ create_F.split_matrix <- function(f1){
 #' create_F.product.coeffs_matrix(fpc31 = 0.2, fpc32 = 0.3, 
 #'                                fpc41 = 0.1, fpc42 = 0.25,
 #'                                fpc51 = 0.2, fpc52 = 0.1)
-create_F.product.coeffs_matrix <- function(fpc31, fpc32,
-                                           fpc41, fpc42,
-                                           fpc51, fpc52){
-  lenfpc31 <- length(fpc31)
-  if (lenfpc31 > 1 & length(fpc32) == lenfpc31 & 
-      length(fpc41) == lenfpc31 & length(fpc42) == lenfpc31 & 
-      length(fpc51) == lenfpc31 & length(fpc52) == lenfpc31){
-    return(Map(create_F.product.coeffs_matrix, fpc31, fpc32, fpc41, fpc42, fpc51, fpc52))
+create_F.product.coeffs_matrix <- function(fpc13, fpc23,
+                                           fpc14, fpc24,
+                                           fpc15, fpc25){
+  lenfpc13 <- length(fpc13)
+  if (lenfpc13 > 1 & length(fpc23) == lenfpc13 & 
+      length(fpc14) == lenfpc13 & length(fpc24) == lenfpc13 & 
+      length(fpc15) == lenfpc13 & length(fpc25) == lenfpc13){
+    return(Map(create_F.product.coeffs_matrix, fpc13, fpc23, fpc14, fpc24, fpc15, fpc25))
   }
   # Add additional items to the matrix
   fpc11 <- 0
-  fpc12 <- 0
   fpc21 <- 0
+  fpc12 <- 0
   fpc22 <- 0
-  fpc61 <- 1 - fpc31 - fpc41 - fpc51
-  fpc62 <- 1 - fpc32 - fpc42 - fpc52
-  matrix(c(fpc11, fpc12,
-           fpc21, fpc22, 
-           fpc31, fpc32,
-           fpc41, fpc42,
-           fpc51, fpc52,
-           fpc61, fpc62),
+  fpc16 <- 1 - fpc13 - fpc14 - fpc15
+  fpc26 <- 1 - fpc23 - fpc24 - fpc25
+  matrix(c(fpc11, fpc21,
+           fpc12, fpc22, 
+           fpc13, fpc23,
+           fpc14, fpc24,
+           fpc15, fpc25,
+           fpc16, fpc26),
          nrow = 6, ncol = 2, byrow = TRUE) %>% 
     setrownames_byname(c("P1", "P2", "P3", "P4", "P5", "P6")) %>% 
     setcolnames_byname(c("F1", "F2")) %>% 
