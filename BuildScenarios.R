@@ -155,8 +155,8 @@ F.product.coeffs_matrices <- expand.grid(fpc_factors) %>%
                           Fin.1.I.4.share==0 & Fin.2.I.4.share==0,"NG Only",
                    ifelse(Fin.1.I.5.share==0 & Fin.2.I.5.share==0 & 
                           Fin.1.I.6.share==0 & Fin.2.I.6.share==0,"Coal Only",
-                        "Coal & NG"))) %>%
-   filter(Resources != "Coal & NG") 
+                        "Coal & NG")))   ##  %>%
+  ## filter(Resources != "Coal & NG") ## DO NOT DROP intermediate combinations
 
 
   tally(group_by(F.product.coeffs_matrices,Resources))
@@ -223,7 +223,7 @@ DF.scenario.matrices <-
   left_join(F.product.coeffs_matrices, 
             by = c("fpc13", "fpc14", "fpc15","fpc16",
                    "fpc23", "fpc24", "fpc25","fpc26")) %>% 
-  filter(!is.na(Resources)) %>%   # Keep only the scenarios
+  # filter(!is.na(Resources)) %>%   # DO NOT Keep only the scenarios
                                   # with Resources we kept above
   # Join the rest of  matrices by the factors that make them unique,
   # thereby providing a data frame that contains all factors
@@ -235,12 +235,12 @@ DF.scenario.matrices <-
 # Filter out the extra gammas/mus that were needed above to make the grid work
 filter(gamma1 == 1, 
        gamma2 == 1, 
-       gamma3 == 1, 
+     #  gamma3 == 1, ### Allow for two etas for I3
        gamma4 == 1, 
        gamma5 == 1, 
        gamma6 == 1, 
        mu1 == 1, 
-       mu2 == 2,   #### Use higher price for NG
+      # mu2 == 2,   #### Allow for two prices of NG
        mu3 == 1, 
        mu4 == 1,
        f1 == 0.4) %>%
@@ -268,5 +268,5 @@ filter(gamma1 == 1,
         Fin.1.price=sapply(X=Prices.mat, function(X) X[Mfg.first,Fin.first]),
         Fin.2.price=sapply(X=Prices.mat, function(X) X[Mfg.first,Fin.first+1]))   
 
-save(DF.scenario.matrices,file="DF.scenario.matrices.Rda")
+save(DF.scenario.matrices,file="DF.scenario.matrices.full.Rda")
 
