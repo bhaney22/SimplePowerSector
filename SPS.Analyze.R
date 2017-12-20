@@ -13,12 +13,12 @@ library(lazyeval) # For the interp function.  (Not sure why this didn't come in 
 library(matsindf) # For collapse_to_matrices and expand_to_tidy functions
 library(ggplot2)  # For awesome plotting functions
 library(plotly)
+library(purrr)
 library(statnet)
 library(igraph)
 library(qgraph)
 
-image.dir	<- c("C:/Users/brh22/Dropbox/Apps/ShareLaTeX/Sabbatical Technical Note/Images/")
-load("DF.results.f.RDa")
+#image.dir	<- c("C:/Users/brh22/Dropbox/Apps/ShareLaTeX/Sabbatical Technical Note/Images/")
 
 ##########################################################################################
 # Explore the relationship between efficiency in ENA (measured as alpha) and 
@@ -27,71 +27,38 @@ load("DF.results.f.RDa")
 # 
 # Each measure of efficiency is measured in both physical and currency units.
 ##########################################################################################
-Eta.1.f           <- levels(as.factor(unlist(DF.results.f$Eta.1)))
-Eta.2.f           <- levels(as.factor(unlist(DF.results.f$Eta.2)))
-Eta.3.f           <- levels(as.factor(unlist(DF.results.f$Eta.3)))
-Eta.4.f           <- levels(as.factor(unlist(DF.results.f$Eta.4)))
-Res.1.price.f     <- levels(as.factor(unlist(DF.results.f$Res.1.price)))
-Res.2.price.f     <- levels(as.factor(unlist(DF.results.f$Res.2.price)))
-Fin.1.price.f     <- levels(as.factor(unlist(DF.results.f$Fin.1.price)))
-Fin.2.price.f     <- levels(as.factor(unlist(DF.results.f$Fin.2.price)))
-Fin.1.Mkt.share.f <- levels(as.factor(unlist(DF.results.f$Fin.1.Mkt.share)))
-Fin.1.I.1.share.f <- levels(as.factor(unlist(DF.results.f$Fin.1.I.1.share)))
-Fin.1.I.2.share.f <- levels(as.factor(unlist(DF.results.f$Fin.1.I.2.share)))
-Fin.1.I.3.share.f <- levels(as.factor(unlist(DF.results.f$Fin.1.I.3.share)))
-Fin.2.I.1.share.f <- levels(as.factor(unlist(DF.results.f$Fin.2.I.1.share)))
-Fin.2.I.2.share.f <- levels(as.factor(unlist(DF.results.f$Fin.2.I.2.share)))
-Fin.2.I.3.share.f <- levels(as.factor(unlist(DF.results.f$Fin.2.I.3.share)))
+load("DF.results.Rda")
+df <- DF.results[order(DF.results$PRR.curr),] %>% 
+          mutate(scenario=seq(1:nrow(DF.results)),
+                 Num.Coal.plants=sapply(X=F.product.coeffs, function(X) sum(sum(X[3,])>0,sum(X[4,])>0)),
+                 Num.NG.plants=sapply(X=F.product.coeffs, function(X) sum(sum(X[5,])>0,sum(X[6,])>0)),
+                 Even.split.coal=sapply(X=F.product.coeffs, function(X) (X[3,1])==.5 & X[4,1]==.5),
+                 Even.split.NG=sapply(X=F.product.coeffs, function(X) (X[5,1])==.5 & X[6,1]==.5),
+                 Num.plants=ifelse(Num.Coal.plants + Num.NG.plants == 1,"1. One Plant",
+                            ifelse(Even.split.coal=="TRUE" | Even.split.NG == "TRUE", "2. Two Plants 50/50",
+                                   "3. Two Plants"))) %>%
+          sort_rows_cols(.,margin=2,colorder=sort(colnames(.))) 
 
-DF.base         <- subset(DF.results.f,
-                              Eta.1==Eta.1.f[1] & 
-                              Eta.2==Eta.2.f[1] &
-                              Eta.3==Eta.3.f[1] &
-                              Eta.4==Eta.4.f[1] &
-                              Res.1.price==Res.1.price.f[1] &
-                              Res.2.price==Res.2.price.f[1] &
-                              Fin.1.price==Fin.1.price.f[1] &
-                              Fin.2.price==Fin.2.price.f[1] &
-                              Fin.1.Mkt.share==Fin.1.Mkt.share.f[1] &
-                              Fin.1.I.1.share==Fin.1.I.1.share.f[1] &
-                              Fin.1.I.2.share==Fin.1.I.2.share.f[1] &
-                              Fin.1.I.3.share==Fin.1.I.3.share.f[1] &
-                              Fin.2.I.1.share==Fin.2.I.1.share.f[1] &
-                              Fin.2.I.2.share==Fin.2.I.2.share.f[1] &
-                              Fin.2.I.3.share==Fin.2.I.3.share.f[1])
+tally(group_by(df,Resources,Num.plants))
 
-DF.f.split         <- subset(DF.results.f,
-                          Eta.1==Eta.1.f[1] & 
-                            Eta.2==Eta.2.f[1] &
-                            Eta.3==Eta.3.f[1] &
-                            Eta.4==Eta.4.f[1] &
-                           Res.1.price==Res.1.price.f[1] &
-                            Res.2.price==Res.2.price.f[1] &
-                        #    Fin.1.price==Fin.1.price.f[1] &
-                            Fin.2.price==Fin.2.price.f[1] &
-                         #   Fin.1.Mkt.share==Fin.1.Mkt.share.f[1] &
-                            Fin.1.I.1.share==Fin.1.I.1.share.f[1] &
-                            Fin.1.I.2.share==Fin.1.I.2.share.f[1] &
-                            Fin.1.I.3.share==Fin.1.I.3.share.f[1] &
-                            Fin.2.I.1.share==Fin.2.I.1.share.f[1] &
-                            Fin.2.I.2.share==Fin.2.I.2.share.f[1] &
-                            Fin.2.I.3.share==Fin.2.I.3.share.f[1])
+df.gath <- df %>% 
+  select(Resources,alpha.phys, alpha.curr,
+         F.phys, F.curr,PRR.curr, PRR.phys,Num.plants) %>%
+  gather(key = "y.var", value = "y.val",
+        # F.phys, F.curr, alpha.phys, alpha.curr, PRR.phys)
+alpha.phys, F.phys,PRR.phys)
 
-p <- plot_ly(DF.f.split,
-             type = 'scatter',
-             x = ~Fin.1.Mkt.share,
-             y = ~F.phys,
-             # Hover Over Text
-             text = paste("Res. Elec. Price: ", DF.f.split$Fin.1.price,
-                          "<br>Com. Elec. Price: ", DF.f.split$Fin.2.price,
-                          "<br> Resid. Elec. Mkt share: ",DF.f.split$Fin.1.Mkt.share,
-                          "<br> alpha (curr): ", round(as.numeric(DF.f.split$alpha.curr),2),
-                          "<br> alpha (phys): ", round(as.numeric(DF.f.split$alpha.phys),2),
-                          "<br> F (curr): ", round(as.numeric(DF.f.split$F.curr),2),
-                          "<br> F (phys): ", round(as.numeric(DF.f.split$F.phys),2),
-                          "<br> PRR (curr): ", round(as.numeric(DF.f.split$PRR.curr),2),
-                          "<br> PRR (phys): ", round(as.numeric(DF.f.split$PRR.phys),2)),
-             hoverinfo = 'text',
-             mode = 'markers'
-)
-p
+#
+# ggplot 
+#
+
+# pdf(file=paste0(image.dir,"SPSplots.pdf"))
+df.gath %>%
+ggplot(mapping = aes_string(x = "PRR.curr", y = "y.val")) +
+  geom_point(aes(color = Num.plants)) +
+#  geom_text() +
+ facet_grid(y.var ~ Resources, scales = "free_y") +
+# scale_x_continuous(limits = c(5,6.5)) +
+  labs(x = "Economic Value Added", y = NULL)
+
+# dev.off()
