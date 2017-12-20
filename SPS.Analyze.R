@@ -18,7 +18,7 @@ library(statnet)
 library(igraph)
 library(qgraph)
 
-#image.dir	<- c("C:/Users/brh22/Dropbox/Apps/ShareLaTeX/Sabbatical Technical Note/Images/")
+image.dir	<- c("C:/Users/brh22/Dropbox/Apps/ShareLaTeX/Sabbatical Technical Note/Images/")
 
 ##########################################################################################
 # Explore the relationship between efficiency in ENA (measured as alpha) and 
@@ -27,7 +27,7 @@ library(qgraph)
 # 
 # Each measure of efficiency is measured in both physical and currency units.
 ##########################################################################################
-load("DF.results.Rda")
+load("DF.results.full.Rda")
 df <- DF.results[order(DF.results$PRR.curr),] %>% 
           mutate(scenario=seq(1:nrow(DF.results)),
                  Num.Coal.plants=sapply(X=F.product.coeffs, function(X) sum(sum(X[3,])>0,sum(X[4,])>0)),
@@ -37,28 +37,85 @@ df <- DF.results[order(DF.results$PRR.curr),] %>%
                  Num.plants=ifelse(Num.Coal.plants + Num.NG.plants == 1,"1. One Plant",
                             ifelse(Even.split.coal=="TRUE" | Even.split.NG == "TRUE", "2. Two Plants 50/50",
                                    "3. Two Plants"))) %>%
-          sort_rows_cols(.,margin=2,colorder=sort(colnames(.))) 
+          sort_rows_cols(.,margin=2,colorder=sort(colnames(.))) %>%
+    filter(!(Resources=="Coal & NG" & Num.plants=="3. Two Plants"))
 
 tally(group_by(df,Resources,Num.plants))
 
 df.gath <- df %>% 
-  select(Resources,alpha.phys, alpha.curr,
-         F.phys, F.curr,PRR.curr, PRR.phys,Num.plants) %>%
+  select(Resources,Res.2.price,Eta.3,Num.plants,
+         alpha.phys, alpha.curr,
+         F.phys, F.curr,PRR.curr, PRR.phys) %>%
   gather(key = "y.var", value = "y.val",
         # F.phys, F.curr, alpha.phys, alpha.curr, PRR.phys)
-alpha.phys, F.phys,PRR.phys)
+F.curr, F.phys,PRR.phys)
 
 #
 # ggplot 
 #
 
-# pdf(file=paste0(image.dir,"SPSplots.pdf"))
-df.gath %>%
+pdf(file=paste0(image.dir,"SPSplots.full1.pdf"))
+
+df.gath %>% filter(Res.2.price > .1 & Eta.3 < .5) %>%
 ggplot(mapping = aes_string(x = "PRR.curr", y = "y.val")) +
   geom_point(aes(color = Num.plants)) +
 #  geom_text() +
  facet_grid(y.var ~ Resources, scales = "free_y") +
 # scale_x_continuous(limits = c(5,6.5)) +
-  labs(x = "Economic Value Added", y = NULL)
+  labs(x = "Economic Value Added", y = NULL) +
+  ggtitle("NG Price (High) & Coal Plant 1 Eta (Lowest)") +
+  theme_bw()
+dev.off()
 
-# dev.off()
+pdf(file=paste0(image.dir,"SPSplots.full2.pdf"))
+df.gath %>% filter(Res.2.price > .1 & Eta.3 >= .5) %>%
+  ggplot(mapping = aes_string(x = "PRR.curr", y = "y.val")) +
+  geom_point(aes(color = Num.plants)) +
+  #  geom_text() +
+  facet_grid(y.var ~ Resources, scales = "free_y") +
+  # scale_x_continuous(limits = c(5,6.5)) +
+  labs(x = "Economic Value Added", y = NULL) +
+  ggtitle("NG Price (High) & Coal Plant 1 Eta (Highest)") +
+  theme_bw()
+dev.off()
+
+pdf(file=paste0(image.dir,"SPSplots.full3.pdf"))
+df.gath %>% filter(Res.2.price < .1 & Eta.3 < .5) %>%
+  ggplot(mapping = aes_string(x = "PRR.curr", y = "y.val")) +
+  geom_point(aes(color = Num.plants)) +
+  #  geom_text() +
+  facet_grid(y.var ~ Resources, scales = "free_y") +
+  # scale_x_continuous(limits = c(5,6.5)) +
+  labs(x = "Economic Value Added", y = NULL)  +
+  ggtitle("NG Price (Low) & Coal Plant 1 Eta (Lowest)") +
+  theme_bw()
+dev.off()
+
+pdf(file=paste0(image.dir,"SPSplots.full4.pdf"))
+df.gath %>% filter(Res.2.price < .1 & Eta.3 >= .5) %>%
+  ggplot(mapping = aes_string(x = "PRR.curr", y = "y.val")) +
+  geom_point(aes(color = Num.plants)) +
+  #  geom_text() +
+  facet_grid(y.var ~ Resources, scales = "free_y") +
+  # scale_x_continuous(limits = c(5,6.5)) +
+  labs(x = "Economic Value Added", y = NULL) +
+  ggtitle("NG Price (Low) & Coal Plant 1 Eta (Highest)") +
+  theme_bw()
+
+dev.off()
+
+########################################################################################
+# WRite out long and wide .csv files
+########################################################################################
+df.gath.csv <- df %>% 
+  select(Resources,Res.2.price,Eta.3,Num.plants,
+         alpha.phys, alpha.curr,
+         F.phys, F.curr,PRR.curr, PRR.phys) %>%
+  gather(key = "y.var", value = "y.val",
+         alpha.phys,
+         F.curr, F.phys,PRR.phys)
+
+write.csv(df.gath.csv,"df.gath.csv")
+df.spread <- spread(df.gath.csv,y.var,y.val)
+write.csv(df.spread,"df.spread.csv")
+
