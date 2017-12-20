@@ -22,7 +22,7 @@ library(igraph)
 library(qgraph)
 
 image.dir	<- c("C:/Users/brh22/Dropbox/Apps/ShareLaTeX/Sabbatical Technical Note/Images/")
-load("DF.results.Rda")
+load("DF.results.full.Rda")
 df <- DF.results[order(DF.results$PRR.curr),] %>% 
   mutate(scenario=seq(1:nrow(DF.results))) %>%
   sort_rows_cols(.,margin=2,colorder=sort(colnames(.))) 
@@ -90,18 +90,37 @@ curr.scale.display <- "Millions USD"
 #
 ##############################################################################################################
 #
-# Choose the scenarios that have the max PRR.curr, PRR.phys, F.phys
+# 1. Choose the scenarios that have the max PRR.curr, PRR.phys, F.phys
 #
+#######################################################################################
 max.PRR.curr = df$scenario[[which.max(df$PRR.curr)]]
 max.PRR.phys = df$scenario[[which.max(df$PRR.phys)]]
 max.F.curr   = df$scenario[[which.max(df$F.curr)]]
 max.F.phys   = df$scenario[[which.max(df$F.phys)]]
 max.alpha.curr   = df$scenario[[which.max(df$alpha.curr)]]
 max.alpha.phys   = df$scenario[[which.max(df$alpha.phys)]]
+mid.scenario1 = nrow(df)/4
+mid.scenario2 = nrow(df)/2
+mid.scenario3 = round(nrow(df)/1.5,0)
 
-for(scenario in list(max.PRR.curr,max.PRR.phys,
-                     max.F.phys,max.F.curr,
-                     max.alpha.curr,max.alpha.phys))  { 
+scenarios.to.graph <- list(max.PRR.curr,max.PRR.phys,
+     max.F.phys,max.F.curr,
+     max.alpha.curr,max.alpha.phys,
+     mid.scenario1,mid.scenario2,mid.scenario3)
+names(scenarios.to.graph) <- list("max.PRR.curr","max.PRR.phys",
+                                  "max.F.phys","max.F.curr",
+                                  "max.alpha.curr","max.alpha.phys",
+                                  "mid.scenario1","mid.scenario2","mid.scenario3")
+
+txt <- sapply(names(scenarios.to.graph),
+              function(x) paste(x,paste(scenarios.to.graph[[x]],collapse=" ")))
+
+lapply(txt, cat, "\n", file=paste0(image.dir,"Flows_scen_key.txt"), append=TRUE)
+
+######################################################################################
+# 2. Loop through the chosen scenarios and create graphs.pdf
+######################################################################################
+for(scenario in scenarios.to.graph)  { 
 
 Mfg.etas = c(round(df$Eta.3[[scenario]],2),
              round(df$Eta.4[[scenario]],2),
