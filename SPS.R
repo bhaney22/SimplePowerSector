@@ -99,5 +99,5 @@ DF.results <- data.frame(DF.eurostat)  %>%
           sum(Flows.curr[Mfg.nodes[4],Fin.nodes])/sum(Flows.curr[,Mfg.nodes[4]])),
         Mfg.etas.mat=NULL,Prices.mat=NULL,f.split=NULL,f.product.coeffs=NULL)
 
-save(DF.results,file="DF.results.Rda")
+save(DF.results,file="DF.results.full.Rda")
 
