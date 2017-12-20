@@ -96,8 +96,12 @@ max.PRR.curr = df$scenario[[which.max(df$PRR.curr)]]
 max.PRR.phys = df$scenario[[which.max(df$PRR.phys)]]
 max.F.curr   = df$scenario[[which.max(df$F.curr)]]
 max.F.phys   = df$scenario[[which.max(df$F.phys)]]
+max.alpha.curr   = df$scenario[[which.max(df$alpha.curr)]]
+max.alpha.phys   = df$scenario[[which.max(df$alpha.phys)]]
 
-for(scenario in list(max.PRR.curr,max.PRR.phys,max.F.phys,max.F.curr))  { 
+for(scenario in list(max.PRR.curr,max.PRR.phys,
+                     max.F.phys,max.F.curr,
+                     max.alpha.curr,max.alpha.phys))  { 
 
 Mfg.etas = c(round(df$Eta.3[[scenario]],2),
              round(df$Eta.4[[scenario]],2),
