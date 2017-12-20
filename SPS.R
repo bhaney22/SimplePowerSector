@@ -89,13 +89,13 @@ DF.results <- data.frame(DF.eurostat)  %>%
             sort_rows_cols(roworder=(c(product.names,fin.names)),
                            colorder=(c(industry.names,fin.names)))
         }),
-        VA.1=sapply(X=Flows.curr,function(Flows.curr)
-          sum(Flows.curr[Mfg.nodes[1],Fin.nodes])/sum(Flows.curr[,Mfg.nodes[1]])),
-        VA.2=sapply(X=Flows.curr,function(Flows.curr)
-          sum(Flows.curr[Mfg.nodes[2],Fin.nodes])/sum(Flows.curr[,Mfg.nodes[2]])),
         VA.3=sapply(X=Flows.curr,function(Flows.curr)
-          sum(Flows.curr[Mfg.nodes[3],Fin.nodes])/sum(Flows.curr[,Mfg.nodes[3]])),
+          sum(Flows.curr[Mfg.nodes[1],Fin.nodes])/sum(Flows.curr[,Mfg.nodes[1]])),
         VA.4=sapply(X=Flows.curr,function(Flows.curr)
+          sum(Flows.curr[Mfg.nodes[2],Fin.nodes])/sum(Flows.curr[,Mfg.nodes[2]])),
+        VA.5=sapply(X=Flows.curr,function(Flows.curr)
+          sum(Flows.curr[Mfg.nodes[3],Fin.nodes])/sum(Flows.curr[,Mfg.nodes[3]])),
+        VA.6=sapply(X=Flows.curr,function(Flows.curr)
           sum(Flows.curr[Mfg.nodes[4],Fin.nodes])/sum(Flows.curr[,Mfg.nodes[4]])),
         Mfg.etas.mat=NULL,Prices.mat=NULL,f.split=NULL,f.product.coeffs=NULL)
 
