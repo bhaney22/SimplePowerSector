@@ -54,7 +54,7 @@ F.curr, F.phys,PRR.phys)
 # ggplot 
 #
 
-pdf(file=paste0(image.dir,"SPSplots.full1.pdf"))
+pdf(file=paste0(image.dir,"SPSplotsfull1.pdf"))
 
 df.gath %>% filter(Res.2.price > .1 & Eta.3 < .5) %>%
 ggplot(mapping = aes_string(x = "PRR.curr", y = "y.val")) +
@@ -67,7 +67,7 @@ ggplot(mapping = aes_string(x = "PRR.curr", y = "y.val")) +
   theme_bw()
 dev.off()
 
-pdf(file=paste0(image.dir,"SPSplots.full2.pdf"))
+pdf(file=paste0(image.dir,"SPSplotsfull2.pdf"))
 df.gath %>% filter(Res.2.price > .1 & Eta.3 >= .5) %>%
   ggplot(mapping = aes_string(x = "PRR.curr", y = "y.val")) +
   geom_point(aes(color = Num.plants)) +
@@ -79,7 +79,7 @@ df.gath %>% filter(Res.2.price > .1 & Eta.3 >= .5) %>%
   theme_bw()
 dev.off()
 
-pdf(file=paste0(image.dir,"SPSplots.full3.pdf"))
+pdf(file=paste0(image.dir,"SPSplotsfull3.pdf"))
 df.gath %>% filter(Res.2.price < .1 & Eta.3 < .5) %>%
   ggplot(mapping = aes_string(x = "PRR.curr", y = "y.val")) +
   geom_point(aes(color = Num.plants)) +
@@ -91,7 +91,7 @@ df.gath %>% filter(Res.2.price < .1 & Eta.3 < .5) %>%
   theme_bw()
 dev.off()
 
-pdf(file=paste0(image.dir,"SPSplots.full4.pdf"))
+pdf(file=paste0(image.dir,"SPSplotsfull4.pdf"))
 df.gath %>% filter(Res.2.price < .1 & Eta.3 >= .5) %>%
   ggplot(mapping = aes_string(x = "PRR.curr", y = "y.val")) +
   geom_point(aes(color = Num.plants)) +
