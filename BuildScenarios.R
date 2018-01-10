@@ -64,7 +64,7 @@ tfos <- c(100)
 f1s <- c(0.4, 0.6)              # Split of total output between Final Output sectors
 fpcs <- c(0, 0.25, 0.5, 0.75, 1)      # Plant shares in output
 gammas <- c(1, 2)               # Eta multipliers
-mus <- c(1, 2)                  # Price multipliers
+mus <- c(1, 1.05,1.10,.95,.9)                  # Price multipliers
 
 # 
 # Actual list of sweep factors that are needed - use in final build.
@@ -73,7 +73,7 @@ tfos1 <- c(100)
 f1s1 <- c(0.4)              # Split of total output between Final Output sectors
 fpcs1 <- c(0, 0.25, 0.75, 1)      # Plant shares in output
 gammas1 <- c(1)               # Eta multipliers
-mus1 <- c(1, 2)                  # Price multipliers
+mus1 <- c(1, 1.05,1.10,.95,.9)                  # Price multipliers
 
 #
 # Step 3: Set the A.mat coefficients
