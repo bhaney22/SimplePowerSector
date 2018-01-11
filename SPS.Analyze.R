@@ -27,9 +27,10 @@ image.dir	<- c("C:/Users/brh22/Dropbox/Apps/ShareLaTeX/Sabbatical Technical Note
 # 
 # Each measure of efficiency is measured in both physical and currency units.
 ##########################################################################################
-load("DF.results.full.Rda")
+load("DF.results.Rda")
 df <- DF.results[order(DF.results$PRR.curr),] %>% 
           mutate(scenario=seq(1:nrow(DF.results)),
+                 price.ratio=Res.1.price/Res.2.price,
                  Num.Coal.plants=sapply(X=F.product.coeffs, function(X) sum(sum(X[3,])>0,sum(X[4,])>0)),
                  Num.NG.plants=sapply(X=F.product.coeffs, function(X) sum(sum(X[5,])>0,sum(X[6,])>0)),
                  Even.split.coal=sapply(X=F.product.coeffs, function(X) (X[3,1])==.5 & X[4,1]==.5),
@@ -37,85 +38,94 @@ df <- DF.results[order(DF.results$PRR.curr),] %>%
                  Num.plants=ifelse(Num.Coal.plants + Num.NG.plants == 1,"1. One Plant",
                             ifelse(Even.split.coal=="TRUE" | Even.split.NG == "TRUE", "2. Two Plants 50/50",
                                    "3. Two Plants"))) %>%
-          sort_rows_cols(.,margin=2,colorder=sort(colnames(.))) %>%
-    filter(!(Resources=="Coal & NG" & Num.plants=="3. Two Plants"))
-
-tally(group_by(df,Resources,Num.plants))
+          sort_rows_cols(.,margin=2,colorder=sort(colnames(.))) 
 
 df.gath <- df %>% 
-  select(Resources,Res.2.price,Eta.3,Num.plants,
+  select(Resources,Res.1.price,Res.2.price,Num.plants,price.ratio,mu1,mu2,
          alpha.phys, alpha.curr,
          F.phys, F.curr,PRR.curr, PRR.phys) %>%
   gather(key = "y.var", value = "y.val",
         # F.phys, F.curr, alpha.phys, alpha.curr, PRR.phys)
-F.curr, F.phys,PRR.phys)
+F.curr, F.phys,PRR.phys,PRR.curr)
 
 #
 # ggplot 
 #
+pdf(file=paste0(image.dir,"SPSplots1.pdf"))
 
-pdf(file=paste0(image.dir,"SPSplotsfull1.pdf"))
-
-df.gath %>% filter(Res.2.price > .1 & Eta.3 < .5) %>%
-ggplot(mapping = aes_string(x = "PRR.curr", y = "y.val")) +
-  geom_point(aes(color = Num.plants)) +
-#  geom_text() +
- facet_grid(y.var ~ Resources, scales = "free_y") +
-# scale_x_continuous(limits = c(5,6.5)) +
-  labs(x = "Economic Value Added", y = NULL) +
-  ggtitle("NG Price (High) & Coal Plant 1 Eta (Lowest)") +
-  theme_bw()
-dev.off()
-
-pdf(file=paste0(image.dir,"SPSplotsfull2.pdf"))
-df.gath %>% filter(Res.2.price > .1 & Eta.3 >= .5) %>%
-  ggplot(mapping = aes_string(x = "PRR.curr", y = "y.val")) +
-  geom_point(aes(color = Num.plants)) +
+df.gath %>% 
+  ggplot(mapping = aes_string(x = "Res.1.price", y = "y.val")) +
+  geom_point(aes(color = Res.2.price)) +
   #  geom_text() +
   facet_grid(y.var ~ Resources, scales = "free_y") +
   # scale_x_continuous(limits = c(5,6.5)) +
-  labs(x = "Economic Value Added", y = NULL) +
-  ggtitle("NG Price (High) & Coal Plant 1 Eta (Highest)") +
+  labs(x = "Coal Price", y = NULL) +
+  ggtitle("Price Regimes and Measures of Efficiency") +
   theme_bw()
 dev.off()
 
-pdf(file=paste0(image.dir,"SPSplotsfull3.pdf"))
-df.gath %>% filter(Res.2.price < .1 & Eta.3 < .5) %>%
-  ggplot(mapping = aes_string(x = "PRR.curr", y = "y.val")) +
-  geom_point(aes(color = Num.plants)) +
-  #  geom_text() +
-  facet_grid(y.var ~ Resources, scales = "free_y") +
-  # scale_x_continuous(limits = c(5,6.5)) +
-  labs(x = "Economic Value Added", y = NULL)  +
-  ggtitle("NG Price (Low) & Coal Plant 1 Eta (Lowest)") +
-  theme_bw()
-dev.off()
+# pdf(file=paste0(image.dir,"SPSplots1.pdf"))
+# 
+# df.gath %>% filter(Res.2.price > .1 & Eta.3 < .5) %>%
+# ggplot(mapping = aes_string(x = "PRR.curr", y = "y.val")) +
+#   geom_point(aes(color = Num.plants)) +
+# #  geom_text() +
+#  facet_grid(y.var ~ Resources, scales = "free_y") +
+# # scale_x_continuous(limits = c(5,6.5)) +
+#   labs(x = "Economic Value Added", y = NULL) +
+#   ggtitle("NG Price (High) & Coal Plant 1 Eta (Lowest)") +
+#   theme_bw()
+# dev.off()
 
-pdf(file=paste0(image.dir,"SPSplotsfull4.pdf"))
-df.gath %>% filter(Res.2.price < .1 & Eta.3 >= .5) %>%
-  ggplot(mapping = aes_string(x = "PRR.curr", y = "y.val")) +
-  geom_point(aes(color = Num.plants)) +
-  #  geom_text() +
-  facet_grid(y.var ~ Resources, scales = "free_y") +
-  # scale_x_continuous(limits = c(5,6.5)) +
-  labs(x = "Economic Value Added", y = NULL) +
-  ggtitle("NG Price (Low) & Coal Plant 1 Eta (Highest)") +
-  theme_bw()
-
-dev.off()
-
-########################################################################################
-# WRite out long and wide .csv files
-########################################################################################
-df.gath.csv <- df %>% 
-  select(Resources,Res.2.price,Eta.3,Num.plants,
-         alpha.phys, alpha.curr,
-         F.phys, F.curr,PRR.curr, PRR.phys) %>%
-  gather(key = "y.var", value = "y.val",
-         alpha.phys,
-         F.curr, F.phys,PRR.phys)
-
-write.csv(df.gath.csv,"df.gath.csv")
-df.spread <- spread(df.gath.csv,y.var,y.val)
-write.csv(df.spread,"df.spread.csv")
+# pdf(file=paste0(image.dir,"SPSplotsfull2.pdf"))
+# df.gath %>% filter(Res.2.price > .1 & Eta.3 >= .5) %>%
+#   ggplot(mapping = aes_string(x = "PRR.curr", y = "y.val")) +
+#   geom_point(aes(color = Num.plants)) +
+#   #  geom_text() +
+#   facet_grid(y.var ~ Resources, scales = "free_y") +
+#   # scale_x_continuous(limits = c(5,6.5)) +
+#   labs(x = "Economic Value Added", y = NULL) +
+#   ggtitle("NG Price (High) & Coal Plant 1 Eta (Highest)") +
+#   theme_bw()
+# dev.off()
+# 
+# pdf(file=paste0(image.dir,"SPSplotsfull3.pdf"))
+# df.gath %>% filter(Res.2.price < .1 & Eta.3 < .5) %>%
+#   ggplot(mapping = aes_string(x = "PRR.curr", y = "y.val")) +
+#   geom_point(aes(color = Num.plants)) +
+#   #  geom_text() +
+#   facet_grid(y.var ~ Resources, scales = "free_y") +
+#   # scale_x_continuous(limits = c(5,6.5)) +
+#   labs(x = "Economic Value Added", y = NULL)  +
+#   ggtitle("NG Price (Low) & Coal Plant 1 Eta (Lowest)") +
+#   theme_bw()
+# dev.off()
+# 
+# pdf(file=paste0(image.dir,"SPSplotsfull4.pdf"))
+# df.gath %>% filter(Res.2.price < .1 & Eta.3 >= .5) %>%
+#   ggplot(mapping = aes_string(x = "PRR.curr", y = "y.val")) +
+#   geom_point(aes(color = Num.plants)) +
+#   #  geom_text() +
+#   facet_grid(y.var ~ Resources, scales = "free_y") +
+#   # scale_x_continuous(limits = c(5,6.5)) +
+#   labs(x = "Economic Value Added", y = NULL) +
+#   ggtitle("NG Price (Low) & Coal Plant 1 Eta (Highest)") +
+#   theme_bw()
+# 
+# dev.off()
+# 
+# ########################################################################################
+# # WRite out long and wide .csv files
+# ########################################################################################
+# df.gath.csv <- df %>% 
+#   select(Resources,Res.2.price,Eta.3,Num.plants,
+#          alpha.phys, alpha.curr,
+#          F.phys, F.curr,PRR.curr, PRR.phys) %>%
+#   gather(key = "y.var", value = "y.val",
+#          alpha.phys,
+#          F.curr, F.phys,PRR.phys)
+# 
+# write.csv(df.gath.csv,"df.gath.csv")
+# df.spread <- spread(df.gath.csv,y.var,y.val)
+# write.csv(df.spread,"df.spread.csv")
 
