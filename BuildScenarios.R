@@ -57,23 +57,14 @@ Fin.2.price = Convert.prices(.15,"kWh",curr.scale) #price of com.elec per kWh ->
 # Step 2: Establish sweep values for factors
 # 
 # 
-# Makeshift list of sweep factors that are needed (needs to have
-# two values even if only want to sweep 1)
+# Problem that needs to be fixed: list of sweep factors needs to have
+# two values even if only want to sweep 1. Makes matrix too big.
 #
-tfos <- c(100)
-f1s <- c(0.4, 0.6)              # Split of total output between Final Output sectors
-fpcs <- c(0, 0.25, 0.5, 0.75, 1)      # Plant shares in output
-gammas <- c(1, 2)               # Eta multipliers
-mus <- c(1, 1.05,1.10,.95,.9)                  # Price multipliers
-
-# 
-# Actual list of sweep factors that are needed - use in final build.
-#
-tfos1 <- c(100)
-f1s1 <- c(0.4)              # Split of total output between Final Output sectors
-fpcs1 <- c(0, 0.25, 0.75, 1)      # Plant shares in output
-gammas1 <- c(1)               # Eta multipliers
-mus1 <- c(1, 1.05,1.10,.95,.9)                  # Price multipliers
+tfo <- c(100)
+f1 <- c(0.4)              # Split of total output between Final Output sectors
+fpcs <- c(0,.25, .5, .75, 1)      # Plant shares in output
+# gammas <- c(1,2)               # Eta multipliers
+mus <- c(1, 1.05,.95,1.10,.90,1.20,.80, 1.25, .75)                  # Price multipliers
 
 #
 # Step 3: Set the A.mat coefficients
@@ -110,10 +101,11 @@ prices.base_matrix <- do.call(create_price_matrix, prices.base_list)
 # Work on f.split matrices
 # Each f.split matrix is a function of the value of f1.
 # 
-F.split_matrices <- data.frame(f1 = f1s) %>% 
-  mutate(
-    F.split = create_F.split_matrix(f1)
-  )
+# F.split_matrices <- data.frame(f1 = f1s) %>%
+#   mutate(
+#     F.split = create_F.split_matrix(f1)
+# ) 
+F.split = create_F.split_matrix(f1)
 
 # 
 # Work on f.product.coeffs
@@ -166,17 +158,17 @@ F.product.coeffs_matrices <- expand.grid(fpc_factors) %>%
 # Each mfg.etas matrix is a function of gamma1 ... gamma6,
 # where gamma is a multiplier on a base value for manufacturing efficiency.
 # 
-gamma_factors <- names(mfg.etas.base_list) %>% 
-  lapply(., function(gammaname){gammas}) %>% 
-  set_names(paste0("gamma", 1:Ind.n))
-
-Mfg.etas_matrices <- 
-  expand.grid(gamma_factors) %>% 
-  mutate(
-    gammas = create_mfg.etas_matrix(I1 = gamma1, I2 = gamma2, I3 = gamma3, I4 = gamma4, I5 = gamma5, I6 = gamma6),
-    mfg.etas = elementproduct_byname(gammas, mfg.etas.base_matrix),
-    gammas = NULL
-  )
+# gamma_factors <- names(mfg.etas.base_list) %>% 
+#   lapply(., function(gammaname){gammas}) %>% 
+#   set_names(paste0("gamma", 1:Ind.n))
+# 
+# Mfg.etas_matrices <- 
+#   expand.grid(gamma_factors) %>% 
+#   mutate(
+#     gammas = create_mfg.etas_matrix(I1 = gamma1, I2 = gamma2, I3 = gamma3, I4 = gamma4, I5 = gamma5, I6 = gamma6),
+#     mfg.etas = elementproduct_byname(gammas, mfg.etas.base_matrix),
+#     gammas = NULL
+#   )
 
 #
 # Work on prices 
@@ -186,6 +178,10 @@ Mfg.etas_matrices <-
 mu_factors <- names(prices.base_list) %>% 
   lapply(., function(muname){mus}) %>%
   set_names(paste0("mu", 1:4))
+
+# Don't expand grid over the output prices (mu3 and 4)
+mu_factors$mu3=1
+mu_factors$mu4=1
 
 Prices_matrices <- 
   expand.grid(mu_factors) %>% 
@@ -199,10 +195,12 @@ Prices_matrices <-
 #
 # Create a named list of all factors and their possible sweep values
 # 
-factors_list <- c(tfo = list(tfos), 
-                  f1 = list(f1s1), 
-                  fpc_factors, 
-                  gamma_factors, 
+# factors_list <- c(tfo = list(tfos), 
+#                   f1 = list(f1s1), 
+#                   fpc_factors, 
+#                   gamma_factors, 
+#                   mu_factors)
+factors_list <- c(fpc_factors, 
                   mu_factors)
 
 # 
@@ -229,26 +227,18 @@ DF.scenario.matrices <-
   # thereby providing a data frame that contains all factors
   # and associated matrices in a single data frame.
   # Each row of this data frame is a scenario to be evaluated.
-  left_join(F.split_matrices, by = "f1") %>% 
-  left_join(Mfg.etas_matrices, by = c("gamma1", "gamma2", "gamma3", "gamma4", "gamma5", "gamma6")) %>% 
+  # left_join(F.split_matrices, by = "f1") %>% 
+  # left_join(Mfg.etas_matrices, by = c("gamma1", "gamma2", "gamma3", "gamma4", "gamma5", "gamma6")) %>% 
   left_join(Prices_matrices, by = c("mu1", "mu2", "mu3", "mu4") ) %>% 
 # Filter out the extra gammas/mus that were needed above to make the grid work
-filter(gamma1 == 1, 
-       gamma2 == 1, 
-     #  gamma3 == 1, ### Allow for two etas for I3
-       gamma4 == 1, 
-       gamma5 == 1, 
-       gamma6 == 1, 
-       mu1 == 1, 
-      # mu2 == 2,   #### Allow for two prices of NG
-       mu3 == 1, 
-       mu4 == 1,
-       f1 == 0.4) %>%
-  rename(TFO = tfo,
+# filter(f1 == 0.4) %>%
+#  rename(Fin.1.Mkt.share = f1,
+  rename(Prices.mat = prices) %>%
+  mutate(TFO = tfo,
          Fin.1.Mkt.share = f1,
-         Mfg.etas.mat = mfg.etas,
-         Prices.mat = prices) %>%
-  mutate(A.mat = lapply(X = TFO, function(X) {A.mat}),
+         F.split = lapply(X = TFO, function(X) {F.split}),
+         A.mat = lapply(X = TFO, function(X) {A.mat}),
+         Mfg.etas.mat  = lapply(X = TFO, function(X) {mfg.etas.base_matrix}),
          fpc13 = NULL,
          fpc14 = NULL,
          fpc15 = NULL,
@@ -268,5 +258,5 @@ filter(gamma1 == 1,
         Fin.1.price=sapply(X=Prices.mat, function(X) X[Mfg.first,Fin.first]),
         Fin.2.price=sapply(X=Prices.mat, function(X) X[Mfg.first,Fin.first+1]))   
 
-save(DF.scenario.matrices,file="DF.scenario.matrices.full.Rda")
+save(DF.scenario.matrices,file="DF.scenario.matrices.Rda")
 
