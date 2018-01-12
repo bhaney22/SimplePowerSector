@@ -43,7 +43,7 @@ df <- DF.results[order(DF.results$PRR.curr),] %>%
 tally(group_by(df,Resources))
 
 
-df.maxvals <- df %>% filter(Resources == "Coal & NG") %>%
+df.maxvals <- df %>% 
   select(Res.1.price,Res.2.price,
          F.phys, F.curr,PRR.curr, PRR.phys) %>%
   mutate(
@@ -57,6 +57,4 @@ df.maxvals <- df %>% filter(Resources == "Coal & NG") %>%
         max(df[which(Res.1.price==X & Res.2.price==Y),]$F.phys)
   })) 
 
-df.maxvals.z <- as.data.frame(scale(df.maxvals))
-  
 save(df.maxvals,file="df.maxvals.Rda")
