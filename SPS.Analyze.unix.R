@@ -15,9 +15,7 @@ library(ggplot2)  # For awesome plotting functions
 library(plotly)
 library(purrr)
 library(statnet)
-library(igraph)
-library(qgraph)
-library(webshot)
+
 
 #image.dir	<- c("C:/Users/brh22/Dropbox/Apps/ShareLaTeX/Sabbatical Technical Note/Images/")
 
