@@ -119,22 +119,32 @@ F.split = create_F.split_matrix(f1)
 fpc_factors <- list(
   fpc13 = fpcs, fpc23 = fpcs,
   fpc14 = fpcs, fpc24 = fpcs,
-  fpc15 = fpcs, fpc25 = fpcs
+  fpc15 = fpcs, fpc25 = fpcs, 
+  fpc16 = fpcs, fpc26 = fpcs
 ) 
-F.product.coeffs_matrices <- expand.grid(fpc_factors) %>% 
-  # Check for valid values of fpc61 and fpc62
-  # by calculating fpc61 and fpc62 ...
+F.product.coeffs_matrices <- fpc_factors %>% 
+  # Create a grid of all possible combinations.
+  expand.grid() %>% 
+  # Calcuate sums of 1x and 2x fpc values.
   mutate(
-    fpc16 = 1 - fpc13 - fpc14 - fpc15,
-    fpc26 = 1 - fpc23 - fpc24 - fpc25
-  ) %>%   
-  # ... then requiring that both fpc61 and fpc62 are non-negative.
-  filter(fpc16 >= 0 & fpc26 >= 0) %>% 
+    onexsum = fpc13 + fpc14 + fpc15 + fpc16,
+    twoxsum = fpc23 + fpc24 + fpc25 + fpc26
+  ) %>% 
+  # Keep only those rows where the sum is 1.
+  filter(onexsum == 1 & twoxsum == 1) %>% 
+  # Remove the auxiliary sum columns.
+  mutate(
+    onexsum = NULL, 
+    twoxsum = NULL
+  ) %>% 
+  select(fpc13, fpc14, fpc15, fpc16, fpc23, fpc24, fpc25, fpc26) %>% 
+
   mutate(F.product.coeffs = 
            create_F.product.coeffs_matrix( fpc13 = fpc13, fpc23 = fpc23,
                                            fpc14 = fpc14, fpc24 = fpc24,
-                                           fpc15 = fpc15, fpc25 = fpc25)
-  ) %>%  
+                                           fpc15 = fpc15, fpc25 = fpc25, 
+                                           fpc16 = fpc16, fpc26 = fpc26)
+  ) %>% 
   mutate( Fin.1.I.3.share = fpc13,
           Fin.1.I.4.share = fpc14,
           Fin.1.I.5.share = fpc15,
@@ -142,7 +152,7 @@ F.product.coeffs_matrices <- expand.grid(fpc_factors) %>%
           Fin.2.I.3.share = fpc23,
           Fin.2.I.4.share = fpc24,
           Fin.2.I.5.share = fpc25,
-          Fin.2.I.6.share = fpc26) %>%
+          Fin.2.I.6.share = fpc26) %>% 
   mutate(Resources=ifelse(Fin.1.I.3.share==0 & Fin.2.I.3.share==0 & 
                           Fin.1.I.4.share==0 & Fin.2.I.4.share==0,"NG Only",
                    ifelse(Fin.1.I.5.share==0 & Fin.2.I.5.share==0 & 
@@ -200,7 +210,8 @@ Prices_matrices <-
 #                   fpc_factors, 
 #                   gamma_factors, 
 #                   mu_factors)
-factors_list <- c(fpc_factors, 
+factors_list <- c(f1,
+                  fpc_factors, 
                   mu_factors)
 
 # 
