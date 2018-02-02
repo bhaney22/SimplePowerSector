@@ -29,6 +29,8 @@ create_F.split_matrix <- function(f1){
 #' 
 #' Also works with lists for \code{fpc31} ... \code{pfc52}.
 #'
+#' fpcxy --> x is output good (fin.1 or fin.2), y is industry (ind.3, ind.4, ind.5, ind.6)
+#'
 #' @param fpc31 the entry in the 3rd row and 1st column of the F.produce.coeffs matrix
 #' @param fpc32 the entry in the 3rd row and 2nd column of the F.produce.coeffs matrix
 #' @param fpc41 the entry in the 4th row and 1st column of the F.produce.coeffs matrix
@@ -40,25 +42,35 @@ create_F.split_matrix <- function(f1){
 #' @export
 #' 
 #' @examples 
-#' create_F.product.coeffs_matrix(fpc31 = 0.2, fpc32 = 0.3, 
-#'                                fpc41 = 0.1, fpc42 = 0.25,
-#'                                fpc51 = 0.2, fpc52 = 0.1)
+#' create_F.product.coeffs_matrix(fpc13 = 0.2, fpc23 = 0.3, 
+#'                                fpc14 = 0.1, fpc24 = 0.25,
+#'                                fpc15 = 0.2, fpc25 = 0.1, 
+#'                                fpc16 = 0.5, fpc26 = 0.35)
 create_F.product.coeffs_matrix <- function(fpc13, fpc23,
                                            fpc14, fpc24,
-                                           fpc15, fpc25){
+                                           fpc15, fpc25, 
+                                           fpc16, fpc26){
+  # Ensure that we have fpcs that sum to 1.
+  # fpc1x is output goods
+  # fpc2x is industries
+  stopifnot(fpc13 + fpc14 + fpc15 + fpc16 == 1)
+  stopifnot(fpc23 + fpc24 + fpc25 + fpc26 == 1)
+  
+  # Test to ensure lengths are all same.
   lenfpc13 <- length(fpc13)
   if (lenfpc13 > 1 & length(fpc23) == lenfpc13 & 
       length(fpc14) == lenfpc13 & length(fpc24) == lenfpc13 & 
-      length(fpc15) == lenfpc13 & length(fpc25) == lenfpc13){
-    return(Map(create_F.product.coeffs_matrix, fpc13, fpc23, fpc14, fpc24, fpc15, fpc25))
+      length(fpc15) == lenfpc13 & length(fpc25) == lenfpc13 & 
+      length(fpc16) == lenfpc13 & length(fpc26) == lenfpc13) {
+    return(Map(create_F.product.coeffs_matrix, fpc13, fpc23, fpc14, fpc24, fpc15, fpc25, fpc16, fpc26))
   }
   # Add additional items to the matrix
+  # fpc11, fpc21, fpc12, and fpc22 are 0, because industries 1 and 2 are the primary extraction industries.
+  # No primary extraction resource goes straight to a final output good.
   fpc11 <- 0
   fpc21 <- 0
   fpc12 <- 0
   fpc22 <- 0
-  fpc16 <- 1 - fpc13 - fpc14 - fpc15
-  fpc26 <- 1 - fpc23 - fpc24 - fpc25
   matrix(c(fpc11, fpc21,
            fpc12, fpc22, 
            fpc13, fpc23,
