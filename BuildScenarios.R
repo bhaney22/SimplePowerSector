@@ -110,11 +110,9 @@ F.split = create_F.split_matrix(f1)
 # 
 # Work on f.product.coeffs
 # Each f.product.coeffs matrix is a function of 
-# fpc31, fpc32, fpc41, fpc42, fpc51, and fpc52.
-# fpc61 and fpc62 are calculated from the input factors,
-# and we check (later) whether any of fpc6x values
-# become negative.
-# If so, we delete them from the scenarios under consideration.
+# fpc31, fpc32, fpc41, fpc42, fpc51, and fpc52 and 
+# fpc61 and fpc62.
+# We delete any scenarios where the sum of fpc1x or fpc2x is not = 1.
 # 
 fpc_factors <- list(
   fpc13 = fpcs, fpc23 = fpcs,
