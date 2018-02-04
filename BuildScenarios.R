@@ -55,17 +55,13 @@ Fin.2.price = Convert.prices(.15,"kWh",curr.scale) #price of com.elec per kWh ->
 
 #
 # Step 2: Establish sweep values for factors
-# 
-# 
-# Problem that needs to be fixed: list of sweep factors needs to have
-# two values even if only want to sweep 1. Makes matrix too big.
-#
-tfo <- c(100)
-# f1s <- c(0.4, 0.3)              # Split of total output between Final Output sectors
-f1 <- c(0.4)
-fpcs <- c(0, 0.3, 01)      # Plant shares in output
-# gammas <- c(1,2)               # Eta multipliers
-mus <- c(1, 1.20)                  # Price multipliers
+
+tfo <- c(100)              # Total Final Output
+f1s <- c(0.4)              # Split between output sectors. 
+                           # NOTE: Plant shares in output middle nums must add to 1:e.g. (.3,.7) or (.5)
+fpcs <- c(0, 0.5, 1)       # Plant shares in output
+# gammas <- c(1,2)         # Eta multipliers
+mus <- c(1, 1.20)          # Price multipliers
 
 #
 # Step 3: Set the A.mat coefficients
@@ -102,7 +98,7 @@ prices.base_matrix <- do.call(create_price_matrix, prices.base_list)
 # Work on f.split matrices
 # Each f.split matrix is a function of the value of f1.
 # 
-# ERROR: The code between the "=" lines does not work if
+# F1_ERROR:: The code between the "=" lines does not work if
 # there is only one number in the f1s list:
 # ===================================================
 # F.split_matrices <- data.frame(f1 = f1s) %>%
@@ -111,9 +107,9 @@ prices.base_matrix <- do.call(create_price_matrix, prices.base_list)
 # )
 # ===================================================
 #
-# The following command is a workaround. 
+# F1_WORKAROUND: The following command is for the workaround. 
 #
-F.split = create_F.split_matrix(f1)
+F.split = create_F.split_matrix(f1 = f1s)
 
 # 
 # Work on f.product.coeffs
@@ -216,7 +212,7 @@ Prices_matrices <-
 #                   fpc_factors, 
 #                   gamma_factors, 
 #                   mu_factors)
-factors_list <- c(f1,
+factors_list <- c(f1 = list(f1s),
                   fpc_factors, 
                   mu_factors)
 
@@ -247,16 +243,23 @@ DF.scenario.matrices <-
   # thereby providing a data frame that contains all factors
   # and associated matrices in a single data frame.
   # Each row of this data frame is a scenario to be evaluated.
-  # left_join(F.split_matrices, by = "f1") %>% 
+  # F1_ERROR: The following code between === does not work.
+  # ========================================================================
+  #  left_join(F.split_matrices, by = "f1") %>% 
+  # ========================================================================
+  # The following line is commented out while the mfg.etas are constant
+  # rather than part of the parameter sweep.
+
   # left_join(Mfg.etas_matrices, by = c("gamma1", "gamma2", "gamma3", "gamma4", "gamma5", "gamma6")) %>% 
+  
   left_join(Prices_matrices, by = c("mu1", "mu2", "mu3", "mu4") ) %>% 
-# Filter out the extra gammas/mus that were needed above to make the grid work
-# filter(f1 == 0.4) %>%
-#  rename(Fin.1.Mkt.share = f1,
   rename(Prices.mat = prices) %>%
   mutate(TFO = tfo,
          Fin.1.Mkt.share = f1,
+        # F1_WORKAROUND: The following code between === is used for workaround.
+        # ========================================================================
          F.split = lapply(X = TFO, function(X) {F.split}),
+        # ========================================================================
          A.mat = lapply(X = TFO, function(X) {A.mat}),
          Mfg.etas.mat  = lapply(X = TFO, function(X) {mfg.etas.base_matrix}),
          fpc13 = NULL,
