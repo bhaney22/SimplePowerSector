@@ -99,17 +99,20 @@ prices.base_matrix <- do.call(create_price_matrix, prices.base_list)
 # Each f.split matrix is a function of the value of f1.
 # 
 # F1_ERROR:: The code between the "=" lines does not work if
-# there is only one number in the f1s list:
+# there is only one number in the f1s list. The command 
+# returns the following error:
+#  "Error in mutate_impl(.data, dots) : 
+#    Column `F.split` must be length 1 (the number of rows), not 2"
 # ===================================================
-# F.split_matrices <- data.frame(f1 = f1s) %>%
-#   mutate(
-#     F.split = create_F.split_matrix(f1)
-# )
+F.split_matrices <- data.frame(f1 = f1s) %>%
+  mutate(
+    F.split = create_F.split_matrix(f1)
+)
 # ===================================================
 #
 # F1_WORKAROUND: The following command is for the workaround. 
 #
-F.split = create_F.split_matrix(f1 = f1s)
+# F.split = create_F.split_matrix(f1 = f1s)
 
 # 
 # Work on f.product.coeffs
@@ -245,7 +248,7 @@ DF.scenario.matrices <-
   # Each row of this data frame is a scenario to be evaluated.
   # F1_ERROR: The following code between === does not work.
   # ========================================================================
-  #  left_join(F.split_matrices, by = "f1") %>% 
+    left_join(F.split_matrices, by = "f1") %>% 
   # ========================================================================
   # The following line is commented out while the mfg.etas are constant
   # rather than part of the parameter sweep.
@@ -258,7 +261,7 @@ DF.scenario.matrices <-
          Fin.1.Mkt.share = f1,
         # F1_WORKAROUND: The following code between === is used for workaround.
         # ========================================================================
-         F.split = lapply(X = TFO, function(X) {F.split}),
+        # F.split = lapply(X = TFO, function(X) {F.split}),
         # ========================================================================
          A.mat = lapply(X = TFO, function(X) {A.mat}),
          Mfg.etas.mat  = lapply(X = TFO, function(X) {mfg.etas.base_matrix}),
