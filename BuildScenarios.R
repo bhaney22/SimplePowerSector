@@ -61,10 +61,11 @@ Fin.2.price = Convert.prices(.15,"kWh",curr.scale) #price of com.elec per kWh ->
 # two values even if only want to sweep 1. Makes matrix too big.
 #
 tfo <- c(100)
-f1 <- c(0.4)              # Split of total output between Final Output sectors
-fpcs <- c(0,.25, .5, .75, 1)      # Plant shares in output
+# f1s <- c(0.4, 0.3)              # Split of total output between Final Output sectors
+f1 <- c(0.4)
+fpcs <- c(0, 0.3, 01)      # Plant shares in output
 # gammas <- c(1,2)               # Eta multipliers
-mus <- c(1, 1.05,.95,1.10,.90,1.20,.80, 1.25, .75)                  # Price multipliers
+mus <- c(1, 1.20)                  # Price multipliers
 
 #
 # Step 3: Set the A.mat coefficients
@@ -101,10 +102,17 @@ prices.base_matrix <- do.call(create_price_matrix, prices.base_list)
 # Work on f.split matrices
 # Each f.split matrix is a function of the value of f1.
 # 
+# ERROR: The code between the "=" lines does not work if
+# there is only one number in the f1s list:
+# ===================================================
 # F.split_matrices <- data.frame(f1 = f1s) %>%
 #   mutate(
 #     F.split = create_F.split_matrix(f1)
-# ) 
+# )
+# ===================================================
+#
+# The following command is a workaround. 
+#
 F.split = create_F.split_matrix(f1)
 
 # 
@@ -218,15 +226,18 @@ factors_list <- c(f1,
 DF.scenario.matrices <- 
   # Create the grid of all unique combinations of factors
   expand.grid(factors_list) %>% 
-  # As above in creating the F.product.coeffs do this again:
-  # Check for valid values of fpc61 and fpc62
-  # by calculating fpc61 and fpc62 ...
+  # As above in creating the F.product.coeffs do this again
+  # to get rid of any combinations that do not sum to 1:
   mutate(
-    fpc16 = 1 - fpc13 - fpc14 - fpc15,
-    fpc26 = 1 - fpc23 - fpc24 - fpc25
-  ) %>%   
-  # ... then requiring that both fpc61 and fpc62 are non-negative.
-  filter(fpc16 >= 0 & fpc26 >= 0) %>% 
+    onexsum = fpc13 + fpc14 + fpc15 + fpc16,
+    twoxsum = fpc23 + fpc24 + fpc25 + fpc26
+  ) %>% 
+  # Keep only those rows where the sum is 1.
+  filter(onexsum == 1 & twoxsum == 1) %>% 
+  # Remove the auxiliary sum columns.
+  mutate(
+    onexsum = NULL, 
+    twoxsum = NULL ) %>% 
   left_join(F.product.coeffs_matrices, 
             by = c("fpc13", "fpc14", "fpc15","fpc16",
                    "fpc23", "fpc24", "fpc25","fpc26")) %>% 
