@@ -61,8 +61,8 @@ DF.results <- data.frame(DF.eurostat)  %>%
         IO.phys.sumall = sumall_byname(IO.phys),
         IO.curr.sumall = sumall_byname(IO.curr),
         GDP.curr = as.numeric(sumall_byname(select_cols_byname(IO.curr,retain_pattern = "^F"))),
-        PRR.phys = TFO/(as.numeric(IO.phys.sumall)-TFO),
-        PRR.curr = as.numeric(GDP.curr)/(as.numeric(IO.curr.sumall)-as.numeric(GDP.curr)),
+        PRR.phys = TFO/(as.numeric(IO.phys.sumall)-TFO),  # Net Energy Ratio Economy Wide
+        PRR.curr = as.numeric(GDP.curr)/(as.numeric(IO.curr.sumall)-as.numeric(GDP.curr)),  #Value-Added Economy Wide
         TST.phys = sapply(X=IO.phys, function(X) calc.TST(X)),
         alpha.phys = sapply(X=IO.phys, function(X) calc.alpha(X)),
         F.phys = sapply(X=IO.phys, function(X) calc.F(X)),
