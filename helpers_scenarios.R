@@ -15,13 +15,14 @@
 #' @examples 
 #' create_F.split_matrix(0.2)
 create_F.split_matrix <- function(f1){
-  if (length(f1) > 1){
+  if (length(f1) > 1) {
     return(lapply(f1, create_F.split_matrix))
   }
-  matrix(c(f1, 1-f1),
+  matrix(c(f1, 1 - f1),
          nrow = 1, ncol = 2, byrow = TRUE) %>%
     setrownames_byname("Product") %>% setcolnames_byname(c("F1", "F2")) %>%
-    setrowtype("Products") %>% setcoltype("Industries")
+    setrowtype("Products") %>% setcoltype("Industries") %>% 
+    make_list(n = 1, lenx = 1)
 }
 
 
