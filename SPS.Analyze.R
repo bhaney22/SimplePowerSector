@@ -3,15 +3,15 @@
 #
 # Statistical and graphical analysis of the SPS results.
 ##############################################################################################
-library(byname)   # Provides convenient matrix manipulation in data frames.
-library(parallel) # For the function mcMap.  (Not sure why this didn't come in with byname.)
-library(magrittr) # For the pipe operator (%>%)
-library(dplyr)    # For mutate and other helpful functions
-library(tidyr)    # For spread and gather functions
-library(tibble)   # For the rownames_to_column function.  (Not sure why this didn't come in with matsindf.)
-library(lazyeval) # For the interp function.  (Not sure why this didn't come in with matsindf.)
-library(matsindf) # For collapse_to_matrices and expand_to_tidy functions
-library(ggplot2)  # For awesome plotting functions
+library(matsbyname)   # Provides convenient matrix manipulation in data frames.
+library(parallel)     # For the function mcMap.  (Not sure why this didn't come in with matsbyname.)
+library(magrittr)     # For the pipe operator (%>%)
+library(dplyr)        # For mutate and other helpful functions
+library(tidyr)        # For spread and gather functions
+library(tibble)       # For the rownames_to_column function.  (Not sure why this didn't come in with matsindf.)
+library(lazyeval)     # For the interp function.  (Not sure why this didn't come in with matsindf.)
+library(matsindf)     # For collapse_to_matrices and expand_to_tidy functions
+library(ggplot2)      # For awesome plotting functions
 library(plotly)
 library(purrr)
 library(statnet)
